@@ -11,6 +11,6 @@ setup(name='pygeotools',
     url='https://github.com/dshean/pygeotools',
     packages=['pygeotools', 'pygeotools.lib'],
     long_description=open('README.md').read(),
-    install_requires=['numpy','gdal'],
+    install_requires=['numpy','gdal','matplotlib'],
 )
 

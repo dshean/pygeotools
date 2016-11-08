@@ -1,9 +1,25 @@
 # pygeotools
-A collection of libraries and utilities for geospatial data processing/analysis
+Libraries and utilities for geospatial data processing/analysis
 
 ## Overview
 
-This repository contains 
+## Usage
+
+Warping multiple datasets to common grid and computing difference
+```
+from pygeotools import iolib, warplib, malib
+fn1 = 'raster1.tif'
+fn2 = 'raster2.tif'
+ds_list = warplib.memwarp_multi_fn([fn1, fn2], res='max', extent='intersection', t_srs='first', r='cubic')
+r1 = iolib.ds_getma(ds_list[0])
+r2 = iolib.ds_getma(ds_list[1])
+rdiff = r1 - r2
+malib.print_stats(rdiff)
+out_fn = 'raster_diff.tif'
+iolib.writeGTiff(rdiff, out_fn, ds_list[0])
+```
+
+## Features
 
 ### pygeotools/lib - libraries containing many useful functions
 - geolib - coordinate transformations, raster to vector, vector to raster
@@ -14,9 +30,12 @@ This repository contains
 - filtlib - raster filtering operations
 - pltlib - some useful matplotlib plotting functions
 
-### pygeotools
+### pygeotools/bin
 
-Useful command line utilities 
+Useful Python and shell command-line utilities
+- warptool.py
+- ndvtrim.py
+- ...
 
 ## Documentation
 
@@ -24,12 +43,7 @@ Is in the works...
 
 ## Installation
 
-The easiest way to install in production is via `pip`. Installation requires a
-recent version of `setuptools`:
-
-    pip install -U setuptools
-
-Then, to install the latest release from PyPI:
+Install the latest release from PyPI:
 
     pip install pygeotools 
 
@@ -40,7 +54,16 @@ Clone the repository and install:
     git clone https://github.com/dshean/pygeotools.git
     pip install pygeotools/
 
-## Dependencies
+### Requirements 
+- gdal
+- numpy
+- matplotlib
 
-- gdal >= 1.10
-- numpy >= 1.7
+## Credits
+
+This originated as a poorly-written, poorly-organized personal repo that I am finally cleaning up and distributing.   
+
+## License
+
+This project is licensed under the terms of the MIT License.
+
