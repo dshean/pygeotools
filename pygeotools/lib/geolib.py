@@ -16,8 +16,6 @@ import os
 import numpy as np
 from osgeo import gdal, ogr, osr
 
-from . import malib
-
 #Enable GDAL exceptions
 gdal.UseExceptions()
 
@@ -1324,7 +1322,7 @@ def dem_geoid_offsetgrid(dem_fn):
 #Note: funcitonality with masking needs work
 def map_interp(bma, gt, stride=1, full_array=True):
     import scipy.interpolate
-    from . import malib
+    from . import iolib
     mx, my = get_xy_ma(bma, gt, stride, origmask=True)
     x, y, z = np.array([mx.compressed(), my.compressed(), bma.compressed()])
     #Define the domain for the interpolation
@@ -1333,8 +1331,8 @@ def map_interp(bma, gt, stride=1, full_array=True):
         xi, yi = get_xy_ma(bma, gt, stride, origmask=False)
     else:
         #Interpolate over buffered area around points
-        newmask = malib.maskfill(bma)
-        newmask = malib.mask_dilate(bma, iterations=3)
+        newmask = iolib.maskfill(bma)
+        newmask = iolib.mask_dilate(bma, iterations=3)
         xi, yi = get_xy_ma(bma, gt, stride, newmask=newmask)
         xi = xi.compressed()
         yi = yi.compressed()
@@ -1425,7 +1423,8 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     return vals, resid, coeff
 
 def ds_fitplane(ds):
-    bma = malib.ds_getma(ds)
+    from . import iolib
+    bma = iolib.ds_getma(ds)
     gt = ds.GetGeoTransform()
     return ma_fitplane(bma, gt)
 
