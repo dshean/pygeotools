@@ -5,6 +5,7 @@
 
 #Library with time conversion utilities
 
+from __future__ import print_function  # DL had to add this to print to a file later on, I don't think it should break anything
 import os
 import numpy as np
 from datetime import datetime, timedelta
@@ -29,7 +30,7 @@ def getTimeZone(lat, lon):
     tzid = None
     if root.attrib['code'] == '0':
         tz = list(root.iter('TimeZone'))[0]
-        shortname = tz.attrib['ShortName']
+        #shortname = tz.attrib['ShortName']
         tzid = tz.attrib['TimeZoneId']
     return tzid 
 
@@ -257,7 +258,7 @@ def mean_date(dt_list):
     return dt_list_sort[0] + avg_timedelta
 
 def median_date(dt_list):
-    dt_list_sort = sorted(dt_list)
+    #dt_list_sort = sorted(dt_list)
     idx = len(dt_list)/2
     if len(dt_list) % 2 == 0:
         md = mean_date([dt_list[idx-1], dt_list[idx]])
