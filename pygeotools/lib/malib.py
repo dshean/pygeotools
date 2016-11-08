@@ -11,6 +11,7 @@ import glob
 
 import numpy as np
 from osgeo import gdal
+from .iolib import np_gdal_dtype
 
 #Notes on geoma
 #Note: Need better init overloading
@@ -176,7 +177,7 @@ class DEMStack:
     #This is pretty clunky
     def get_source(self):
         for i, fn in enumerate(self.fn_list):
-            for key, d in source_dict.items():
+            for key, d in source_dict.items():  # TODO This is broken, source_dict undefinied
                 if d['fn_pattern'] in fn:
                     self.source[i] = key
                     break
@@ -194,13 +195,13 @@ class DEMStack:
             if self.error_dict_list[i] is not None:
                 self.error[i] = self.error_dict_list[i]['Output Sampled Median Error']
             elif self.source[i] is not 'None':
-                if 'error_perc' in source_dict[self.source[i]]:
+                if 'error_perc' in source_dict[self.source[i]]:    # TODO This is broken, source_dict undefinied
                     istat = fast_median(self.ma_stack[i])
                     #Probably want to avoid using max, as could have bogus values
                     #istat = calcperc(self.ma_stack[i], clim=(2,98))[1]
-                    self.error[i] = source_dict[self.source[i]]['error_perc'] * istat
+                    self.error[i] = source_dict[self.source[i]]['error_perc'] * istat  # TODO This is broken, source_dict undefinied
                 else:
-                    self.error[i] = source_dict[self.source[i]]['error']
+                    self.error[i] = source_dict[self.source[i]]['error']  # TODO This is broken, source_dict undefinied
 
     def makestack(self):
         from . import warplib
@@ -235,8 +236,8 @@ class DEMStack:
         #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
         self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
         #Might want to convert to proj4
-        self.proj = ds.GetProjectionRef()
-        self.gt = ds.GetGeoTransform()
+        self.proj = ds_list[0].GetProjectionRef()
+        self.gt = ds_list[0].GetGeoTransform()
         #Now set these for stack, regardless of input
         self.get_res()
         self.get_extent()
@@ -495,7 +496,6 @@ class DEMStack:
 
     #This needs some work - will break with nonstandard filenames
     def get_date_list(self):
-        import dateutil
         from . import timelib
         import matplotlib.dates
         from datetime import datetime
@@ -601,7 +601,6 @@ class DEMStack:
 
     #Compute linear regression for every pixel in stack
     def linreg(self, rsq=False, conf_test=False):
-        from numpy.linalg import solve
         #Only compute where we have n_min unmasked values in time
         if self.stats:
             count = self.stack_count
@@ -771,7 +770,7 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
         s = s_orig
 
     from . import geolib
-    res = s.res
+    # res = s.res
     gt = s.gt
     s_shape = s.ma_stack.shape[1:3]
 
@@ -984,7 +983,6 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
 
 #Compute linear regression for every pixel in stack
 def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
-    from numpy.linalg import solve
     from . import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
@@ -1090,7 +1088,7 @@ def get_edges(a, convex=False):
     #This is a rough outline - needs testing
     if convex:
         from scipy.spatial import ConvexHull
-        hull = ConvexHull(edges.T)
+        #hull = ConvexHull(edges.T)
         #edges = edges.T[hull.simplices]
         #This is in scipy v0.14
         #edges0 = edges1 = hull.vertices
@@ -1493,7 +1491,7 @@ def print_stats(a, full=False):
     return stats
 
 def rmse(a):
-    ac = checkma(a).compressed()
+    checkma(a).compressed()
     rmse = np.sqrt(np.sum(a**2)/a.size)
     return rmse
 
