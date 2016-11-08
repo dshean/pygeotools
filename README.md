@@ -67,10 +67,14 @@ Clone the repository and install:
     git clone https://github.com/dshean/pygeotools.git
     pip install pygeotools/
 
-### Requirements 
-- gdal
-- numpy
-- matplotlib
+### Core requirements 
+- GDAL 
+- NumPy 
+
+### Optional requirements (needed for some functionality) 
+- Matplotlib
+- SciPy
+- NASA Ames Stereo Pipeline (Precompiled binaries and documentation available from https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/)
 
 ## Disclaimer 
 
