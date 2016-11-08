@@ -110,7 +110,7 @@ def perc_fltr(dem, perc=(1.0, 99.0)):
 def threesigma(dem):
     std = dem.std()
     u = dem.mean()
-    rangelim = (m - 3*std, u + 3*std)
+    rangelim = (u - 3*std, u + 3*std)
     out = range_fltr(dem, rangelim)
     return out
 
@@ -412,8 +412,8 @@ def butter_low(dt_list, val, lowpass=1.0):
     b, a = scipy.signal.butter(order, f_max, btype='lowpass')
     #b, a = sp.signal.butter(order, (f_min, f_max), btype='bandstop')
     w, h = scipy.signal.freqz(b, a, worN=2000)
-    w_f = (nyq/np.pi)*w
-    w_f_days = 1/w_f/86400.
+    # w_f = (nyq/np.pi)*w
+    # w_f_days = 1/w_f/86400.
     #plt.plot(w_f_days, np.abs(h))
 
     val_f = scipy.signal.filtfilt(b, a, val)
@@ -471,6 +471,7 @@ def butter(dt_list, val, lowpass=1.0):
     val_f_tide_denoise = scipy.signal.filtfilt(b, a, val_f_tide)
     #val_f_notide = sp.signal.filtfilt(b, a, val)
     val_f_notide = val - val_f_tide 
+    # TODO Does this need to return something
 
 #This is a framework for 2D FFT filtering
 #It has not be tested or finished - Ben suggests this is a dead end
