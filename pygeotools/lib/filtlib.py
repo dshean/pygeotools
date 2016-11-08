@@ -9,6 +9,7 @@ Filter an input raster with various approaches
 Could use some serious cleanup - lots of obsolute code
 """
 
+import sys
 import os
 import shutil
 
@@ -17,9 +18,10 @@ import scipy
 import scipy.ndimage
 from osgeo import gdal
 
-from lib import iolib
-from lib import malib
-from lib import geolib
+import iolib
+import malib
+import geolib
+import warplib
 
 #Note:
 #Original main casts input as float32 so np.nan filling works
@@ -29,8 +31,6 @@ from lib import geolib
 
 #Absolute elevation range filter using an existing low-res DEM
 def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
-    import sys
-    from lib import warplib
     try:
         with open(refdem_fn) as f: pass
     except IOError as e:
@@ -74,8 +74,6 @@ def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
 
 #Absolute elevation range filter using an existing low-res DEM
 def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
-    import sys
-    from lib import warplib
     try:
         with open(refdem_fn) as f: pass
     except IOError as e:
