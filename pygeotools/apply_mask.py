@@ -13,8 +13,8 @@ import sys, os
 import numpy as np
 from osgeo import gdal
 
-from lib import iolib
-from lib import warplib
+from .lib import iolib
+from .lib import warplib
 
 if len(sys.argv) != 3:
     sys.exit("Usage: %s raster.tif mask.tif" % os.path.basename(sys.argv[0]))
@@ -44,9 +44,9 @@ else:
 
 #newmask = np.logical_or(np.ma.getmaskarray(dem_ma_full), mask)
 
-print "Creating new array with updated mask"
+print("Creating new array with updated mask")
 dem_ma_full = np.ma.array(dem_ma_full, mask=mask)
 
-print "Writing out masked full-res DEM"
+print("Writing out masked full-res DEM")
 dem_fn_masked = os.path.splitext(dem_fn)[0]+'_masked.tif'
 iolib.writeGTiff(dem_ma_full, dem_fn_masked, dem_ds, create=True, sparse=True) 

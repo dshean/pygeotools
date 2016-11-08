@@ -8,8 +8,8 @@
 import sys
 import os
 
-from lib import iolib
-from lib import malib
+from .lib import iolib
+from .lib import malib
 
 if len(sys.argv) != 2:
     sys.exit('Usage is: %s raster.tif' % os.path.basename(sys.argv[0]))
@@ -21,13 +21,13 @@ src_gt = src_ds.GetGeoTransform()
 src_dt = src_ds.GetRasterBand(1).DataType
 src_srs = src_ds.GetProjection()
 
-print "Loading input raster into masked array"
+print("Loading input raster into masked array")
 bma = iolib.ds_getma(src_ds)
 
-print "Computing min/max indices for mask"
+print("Computing min/max indices for mask")
 edge_env = malib.edgefind2(bma)
 
-print "Updating output geotransform"
+print("Updating output geotransform")
 out_gt = list(src_gt)
 #This should be OK, as edge_env values are integer multiples, and the initial gt values are upper left pixel corner
 #Update UL_X
@@ -43,7 +43,7 @@ out_gt = tuple(out_gt)
 #print out_gt
 
 out_fn = os.path.splitext(src_fn)[0]+'_trim.tif'
-print "Writing out: %s" % out_fn
+print("Writing out: %s" % out_fn)
 #Extract valid subsection from input array
 #indices+1 are necessary to include valid row/col on right and bottom edges
 iolib.writeGTiff(bma[edge_env[0]:edge_env[1]+1, edge_env[2]:edge_env[3]+1], out_fn, src_ds, gt=out_gt)

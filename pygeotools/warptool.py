@@ -8,8 +8,8 @@
 import os
 import argparse
 
-from lib import warplib
-from lib import geolib
+from .lib import warplib
+from .lib import geolib
 
 def main():
     #Can't specify arbitrary fn, res when limiting choices
@@ -36,13 +36,13 @@ def main():
     #extent = [-197712.13, -2288712.83, -169650.72, -2253490.42] 
     #res = 2.0
 
-    print
-    print "Input parameters"
-    print "Resolution: %s" % str(args.tr)
-    print "Extent: %s" % str(args.te)
-    print "Projection: %s" % str(args.t_srs)
-    print "Resampling alg: %s" % str(args.r)
-    print
+    print()
+    print("Input parameters")
+    print("Resolution: %s" % str(args.tr))
+    print("Extent: %s" % str(args.te))
+    print("Projection: %s" % str(args.t_srs))
+    print("Resampling alg: %s" % str(args.r))
+    print()
     
     ds_list = warplib.memwarp_multi_fn(args.src_fn_list, res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r)
 
@@ -60,7 +60,7 @@ def main():
         if not geolib.ds_IsEmpty(ds):
             warplib.writeout(ds, outfn)     
         else:
-            print "Output ds is empty"
+            print("Output ds is empty")
 
 if __name__ == "__main__":
     main()
