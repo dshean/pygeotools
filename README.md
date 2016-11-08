@@ -11,11 +11,10 @@ Libraries and utilities for geospatial data processing/analysis
 ### pygeotools/lib - libraries containing many useful functions
 - geolib - coordinate transformations, raster to vector, vector to raster
 - malib - NumPy Masked Array, DEMStack class
-- warplib - on-the-fly GDAL warp operations
+- warplib - in-memory GDAL warp operations
 - iolib - file input/output, primarily wrappers for GDAL I/O
 - timelib - time conversions, useful when working with time series
 - filtlib - raster filtering operations
-- pltlib - some useful matplotlib plotting functions
 
 ### pygeotools/bin
 
