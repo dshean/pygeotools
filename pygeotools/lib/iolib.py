@@ -3,7 +3,7 @@
 from osgeo import gdal, osr
 import numpy as np
 
-import malib
+from . import malib
 
 #Functions for IO, mostly wrapped around GDAL
 #Written before RasterIO existed, which should probably be used instead of these 
@@ -23,7 +23,7 @@ def fn_getds(fn):
     if fn_check(fn):
         ds = gdal.Open(fn, gdal.GA_ReadOnly)
     else:
-        print "Unable to find %s" % fn
+        print("Unable to find %s" % fn)
     return ds
 
 #Given input filename, return a masked array for specified band
@@ -160,7 +160,7 @@ def np_gdal_dtype(d):
         #Write out as Byte
         gdal_dt = 1 
     else:
-        gdal_dt = dt_dict.keys()[dt_dict.values().index(d)]
+        gdal_dt = list(dt_dict.keys())[list(dt_dict.values()).index(d)]
     return gdal_dt
 
 #Replace nodata value in GDAL band
@@ -238,7 +238,7 @@ def fn_list_check(fn_list):
     status = True
     for fn in fn_list:
         if not fn_check(fn):
-            print 'Unable to find: %s' % fn
+            print('Unable to find: %s' % fn)
             status = False
     return status
 

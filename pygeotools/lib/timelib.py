@@ -17,11 +17,11 @@ spy = 86400.*365.25
 #Get timezone for a given lat/lon
 #lon,lat = geolib.get_center(ds, t_srs=geolib.wgs_srs)
 def getTimeZone(lat, lon):
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
     import xml.etree.ElementTree as ET
     #http://api.askgeo.com/v1/918/aa8292ec06199d1207ccc15be3180213c984832707f0cbf3d3859db279b4b324/query.xml?points=37.78%2C-122.42%3B40.71%2C-74.01&databases=Point%2CTimeZone%2CAstronomy%2CNaturalEarthCountry%2CUsState2010%2CUsCounty2010%2CUsCountySubdivision2010%2CUsTract2010%2CUsBlockGroup2010%2CUsPlace2010%2CUsZcta2010
     req = "http://api.askgeo.com/v1/918/aa8292ec06199d1207ccc15be3180213c984832707f0cbf3d3859db279b4b324/query.xml?points="+str(lat)+"%2C"+str(lon)+"&databases=TimeZone"
-    opener = urllib2.build_opener()
+    opener = urllib.request.build_opener()
     f = opener.open(req)
     tree = ET.parse(f)
     root = tree.getroot()
@@ -145,13 +145,13 @@ def get_closest_dt_fn(fn, fn_list):
     return fn_list[idx]
 
 def get_closest_dt_idx(dt, dt_list):
-    import malib
+    from . import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
     return dt_diff.argmin()
 
 def get_closest_dt_padded_idx(dt, dt_list, pad=timedelta(days=30)):
-    import malib
+    from . import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
     valid_idx = (dt_diff.data < pad).nonzero()[0]
@@ -201,7 +201,7 @@ def get_dt_bounds_fn(list_fn, min_rel_dt=(5,31), max_rel_dt=(6,1)):
     dt_list = np.array(dt_list)
     bounds = get_dt_bounds(dt_list, min_rel_dt, max_rel_dt)
     for b in bounds:
-        print b
+        print(b)
         c_date = center_date(b[0], b[1])
         #c_date = datetime(b[1].year,1,1)
         idx = (dt_list >= b[0]) & (dt_list < b[1])
@@ -211,7 +211,7 @@ def get_dt_bounds_fn(list_fn, min_rel_dt=(5,31), max_rel_dt=(6,1)):
                 (c_date.strftime('%Y%m%d'), b[0].strftime('%Y%m%d'), b[1].strftime('%Y%m%d'))
         out_f = open(out_fn, 'w')
         for fn in fn_list[idx]:
-            print>>out_f, fn
+            print(fn, file=out_f)
         out_f = None
 
 #parallel 'dem_mosaic -l {} --count -o {.}' ::: 2*fn_list.txt
@@ -449,8 +449,8 @@ def print_dt(dt):
 #Should add functionality to do relative doy
 def gen_ts_fn(fn, dt_ref=None, ma=False):
     from osgeo import gdal
-    import iolib
-    print "Generating timestamp for: %s" % fn
+    from . import iolib
+    print("Generating timestamp for: %s" % fn)
     fn_ts = os.path.splitext(fn)[0]+'_ts.tif' 
     if not os.path.exists(fn_ts) or dt_ref is not None:
         ds = gdal.Open(fn)
@@ -483,7 +483,7 @@ def tsx_cdate(t1):
     return jd2dt(t1)
 
 def tsx_cdate_print(t1):
-    print tsx_cdate(t1).strftime('%Y%m%d_%H%M')
+    print(tsx_cdate(t1).strftime('%Y%m%d_%H%M'))
 
 #Matlab to python o = matlab - 366
 #Launch was June 15, 2007 at 0214 UTC
