@@ -13,14 +13,12 @@ from pygeotools.lib import malib
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit('Usage is: %s raster.tif' % os.path.basename(sys.argv[0]))
+        sys.exit('Usage: %s raster.tif' % os.path.basename(sys.argv[0]))
 
     src_fn = sys.argv[1]
     #This is a wrapper around gdal.Open()
     src_ds = iolib.fn_getds(src_fn)
     src_gt = src_ds.GetGeoTransform()
-    src_dt = src_ds.GetRasterBand(1).DataType
-    src_srs = src_ds.GetProjection()
 
     print("Loading input raster into masked array")
     bma = iolib.ds_getma(src_ds)
@@ -49,7 +47,6 @@ def main():
     #indices+1 are necessary to include valid row/col on right and bottom edges
     iolib.writeGTiff(bma[edge_env[0]:edge_env[1]+1, edge_env[2]:edge_env[3]+1], out_fn, src_ds, gt=out_gt)
     bma = None
-
 
 if __name__ == '__main__':
     main()
