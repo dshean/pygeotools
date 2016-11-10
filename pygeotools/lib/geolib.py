@@ -197,9 +197,9 @@ def sps2local(x, y, z=0, local_srs=None):
         local_srs = localortho(lon, lat)
     return cT_helper(x, y, z, sps_srs, local_srs)
 
-def lldist(xxx_todo_changeme, xxx_todo_changeme1):
-    (lon1, lat1) = xxx_todo_changeme
-    (lon2, lat2) = xxx_todo_changeme1
+def lldist(pt1, pt2):
+    (lon1, lat1) = pt1 
+    (lon2, lat2) = pt2 
     from vincenty import vincenty
     d = vincenty((lat1, lon1), (lat2, lon2))
     return d
@@ -440,7 +440,6 @@ def block_stats_grid_parallel(x,y,z,ds,stat='median'):
     out_z = block_stat[idx]
     return out_x, out_y, out_z
 
-
     gt = ds.GetGeoTransform()
     pX, pY = mapToPixel(mx, my, gt)
     shape = (ds.RasterYSize, ds.RasterXSize)
@@ -471,27 +470,6 @@ def mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32):
     if srs is not None:
         m_ds.SetProjection(srs.ExportToWkt())
     return m_ds
-
-#This computes extent and res
-#Might be simpler to create a temporary dataset
-def block_stats_gen(x,y,z,stat='median',bins=None,res=None):
-    from scipy import stats
-    #res should be (x_res, y_res)
-    #bins should be (x_bins, y_bins)
-    range = np.array([[x.min(), x.max()],[y.min(), y.max()]])
-    #dim = np.array([int(round(range[0][1] - range[0][0])), int(round(range[1][1] - range[1][0]))])
-    dim = np.array([int(np.ceil(range[0][1] - range[0][0])), int(np.ceil(range[1][1] - range[1][0]))])
-    if (res is not None) and (bins is None):
-        res = np.array(res)
-        bins = (np.ceil(dim/res.astype('float'))).astype(int)
-    if (bins is not None) and (res is None):
-        bins = np.array(bins)
-        res = dim/(bins).astype('float')
-    #Note: bins is (nx, ny)
-    block_stat, xedges, yedges, bin = stats.binned_statistic_2d(x,y,z,stat,bins,range)
-    #gt should be upper left pixel coords
-    gt = (range[0][0], res[1], 0.0, range[1][1], 0.0, -res[0])
-    return gt  # TODO I think this is what you want to return here
 
 #Modify proj/gt of dst_fn in place
 def copyproj(src_fn, dst_fn, gt=True):
