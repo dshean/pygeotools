@@ -12,7 +12,7 @@ import glob
 import numpy as np
 from osgeo import gdal
 
-from . import iolib
+from pygeotools.lib import iolib
 
 #Notes on geoma
 #Note: Need better init overloading
@@ -161,7 +161,7 @@ class DEMStack:
 
     #This stores list
     def get_extent(self):
-        from . import geolib
+        from pygeotools.lib import geolib
         #Should check to make sure gt is defined
         self.extent = geolib.gt_extent(self.gt, self.ma_stack.shape[2], self.ma_stack.shape[1])
 
@@ -178,6 +178,8 @@ class DEMStack:
         m_ds.SetProjection(self.proj)
         return m_ds
 
+    """
+    #TODO: Need to clean up the source_dict and error_dict code below
     #This is pretty clunky
     def get_source(self):
         for i, fn in enumerate(self.fn_list):
@@ -206,9 +208,10 @@ class DEMStack:
                     self.error[i] = source_dict[self.source[i]]['error_perc'] * istat
                 else:
                     self.error[i] = source_dict[self.source[i]]['error']
+    """
 
     def makestack(self):
-        from . import warplib
+        from pygeotools.lib import warplib
         print("Creating stack of %i files" % len(self.fn_list))
         #Jako front 
         #res = 16
@@ -225,7 +228,7 @@ class DEMStack:
             srs = self.srs
         ds_list = warplib.memwarp_multi_fn(self.fn_list, res=res, extent=extent, t_srs=srs)
         #Check to eliminate empty datasets
-        from . import geolib
+        from pygeotools.lib import geolib
         #Returns True if empty
         bad_ds_idx = np.array([geolib.ds_IsEmpty(ds) for ds in ds_list])
         if np.any(bad_ds_idx):
@@ -389,7 +392,7 @@ class DEMStack:
             self.error_dict_list = [None for i in self.fn_list]
         #This is a shortcut, should load from the data['date_list'] arrays
         if 'date_list_o' in data:
-            from . import timelib
+            from pygeotools.lib import timelib
             from datetime import datetime
             self.date_list_o = np.ma.fix_invalid(data['date_list_o'], fill_value=1.0)
             #This is a hack - need universal timelib time zone support or stripping
@@ -498,7 +501,7 @@ class DEMStack:
 
     #This needs some work - will break with nonstandard filenames
     def get_date_list(self):
-        from . import timelib
+        from pygeotools.lib import timelib
         import matplotlib.dates
         from datetime import datetime
         #self.date_list = np.ma.array([dateutil.parser.parse(os.path.split(fn)[1][0:13], fuzzy=True) for fn in self.fn_list])
@@ -714,7 +717,7 @@ class DEMStack:
             self.write_stats()
         hs_fn = os.path.splitext(in_fn)[0]+'_hs.tif'
         if not os.path.exists(hs_fn):
-            from . import geolib
+            from pygeotools.lib import geolib
             print("Generate shaded relief from mean")
             self.stack_mean_hs = geolib.gdaldem_wrapper(in_fn, 'hs')
         else:
@@ -722,7 +725,7 @@ class DEMStack:
 
 def stack_smooth(s_orig, size=7, save=False):
     from copy import deepcopy
-    from . import filtlib
+    from pygeotools.lib import filtlib
     print("Copying original DEMStack")
     s = deepcopy(s_orig)
     s.stack_fn = os.path.splitext(s_orig.stack_fn)[0]+'_smooth%ipx.npz' % size
@@ -768,7 +771,7 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
         #Want to be very careful here, as we could overwrite the original file
         s = s_orig
 
-    from . import geolib
+    from pygeotools.lib import geolib
     gt = s.gt
     s_shape = s.ma_stack.shape[1:3]
 
@@ -909,7 +912,7 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
 
 #First stack should be "master" - preserve stats, etc
 def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
-    from . import geolib
+    from pygeotools.lib import geolib
     from copy import deepcopy
     #Assumes input stacks have identical extent, resolution, and projection
     if s1.ma_stack.shape[1:3] != s2.ma_stack.shape[1:3]:
@@ -981,7 +984,7 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
 
 #Compute linear regression for every pixel in stack
 def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
-    from . import timelib
+    from pygeotools.lib import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
     #Only compute where we have n_thresh unmasked values in time

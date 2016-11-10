@@ -5,13 +5,13 @@
 
 #Library with time conversion utilities
 
-from __future__ import print_function  # DL had to add this to print to a file later on, I don't think it should break anything
 import os
-import numpy as np
 from datetime import datetime, timedelta
 import time
-import dateutil.parser
+
+import numpy as np
 import matplotlib.dates
+import dateutil.parser
 
 spy = 86400.*365.25
 
@@ -146,13 +146,13 @@ def get_closest_dt_fn(fn, fn_list):
     return fn_list[idx]
 
 def get_closest_dt_idx(dt, dt_list):
-    from . import malib
+    from pygeotools.lib import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
     return dt_diff.argmin()
 
 def get_closest_dt_padded_idx(dt, dt_list, pad=timedelta(days=30)):
-    from . import malib
+    from pygeotools.lib import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
     valid_idx = (dt_diff.data < pad).nonzero()[0]
@@ -212,7 +212,7 @@ def get_dt_bounds_fn(list_fn, min_rel_dt=(5,31), max_rel_dt=(6,1)):
                 (c_date.strftime('%Y%m%d'), b[0].strftime('%Y%m%d'), b[1].strftime('%Y%m%d'))
         out_f = open(out_fn, 'w')
         for fn in fn_list[idx]:
-            print(fn, file=out_f)
+            out_f.write('%s\n' % fn)
         out_f = None
 
 #parallel 'dem_mosaic -l {} --count -o {.}' ::: 2*fn_list.txt
@@ -450,7 +450,7 @@ def print_dt(dt):
 #Should add functionality to do relative doy
 def gen_ts_fn(fn, dt_ref=None, ma=False):
     from osgeo import gdal
-    from . import iolib
+    from pygeotools.lib import iolib
     print("Generating timestamp for: %s" % fn)
     fn_ts = os.path.splitext(fn)[0]+'_ts.tif' 
     if not os.path.exists(fn_ts) or dt_ref is not None:

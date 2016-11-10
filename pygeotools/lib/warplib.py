@@ -3,7 +3,6 @@
 """
 David Shean
 dshean@gmail.com
-2/15/13
 
 To do:
 Much better type checking
@@ -19,8 +18,8 @@ import math
 
 from osgeo import gdal, osr
 
-from . import geolib
-from . import iolib
+from pygeotools.lib import geolib
+from pygeotools.lib import iolib
 
 #Note: can run into filesystem limits for number of open files
 #http://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
@@ -147,7 +146,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             #Need this to actually make src_ndv stick for dst_ds
             b.Fill(src_ndv)
         if gauss:
-            from . import filtlib
+            from pygeotools.lib import filtlib
             #src_a = src_b.GetVirtualMemArray()
             #Compute resampling ratio to determine filter window size
             res_ratio = float(res)/src_res
@@ -288,18 +287,17 @@ def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first'
         #print ds_res, ds_extent
         #print res, extent
 
+        #Note: these checks necessary to deal with rounding errors
         rescheck=False
         if res is None or geolib.res_compare(res, ds_res):
             rescheck=True
         extentcheck=False
-        #Note: extent_compare is necessary to deal with rounding errors
         if extent is None or geolib.extent_compare(extent, ds_extent):
             extentcheck=True
         srscheck=False
         if (t_srs.IsSame(ds_t_srs)):
             srscheck=True
             
-        #if geolib.res_compare(res, ds_res) and geolib.extent_compare(extent, ds_extent) and (t_srs.IsSame(ds_t_srs)):
         if rescheck and extentcheck and srscheck:
             out_ds_list.append(ds)
         else:

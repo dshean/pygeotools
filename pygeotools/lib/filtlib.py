@@ -2,7 +2,6 @@
 """
 David Shean
 dshean@gmail.com
-10/15/12
 
 Filter an input raster with various approaches
 
@@ -17,10 +16,10 @@ import numpy as np
 import scipy
 import scipy.ndimage
 
-from . import iolib
-from . import malib
-from . import geolib
-from . import warplib
+from pygeotools.lib import iolib
+from pygeotools.lib import malib
+from pygeotools.lib import geolib
+from pygeotools.lib import warplib
 
 #Note:
 #Original main casts input as float32 so np.nan filling works

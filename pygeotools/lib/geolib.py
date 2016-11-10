@@ -3,7 +3,6 @@
 """
 David Shean
 dshean@gmail.com
-10/29/12
 
 Library of various useful raster geospatial functions
 """
@@ -516,7 +515,7 @@ def shp_fieldnames(lyr):
 #Get a dictionary for all features in a shapefile
 #Optionally, specify fields
 def shp_dict(shp_fn, fields=None, geom=True):
-    from . import timelib
+    from pygeotools.lib import timelib
     ds = ogr.Open(shp_fn)
     lyr = ds.GetLayer()
     nfeat = lyr.GetFeatureCount()
@@ -594,7 +593,7 @@ def shp2geom(shp_fn):
 #Write out a shapefile for input geometry
 #Useful for debugging
 def geom2shp(geom, out_fn, fields=False):
-    from . import timelib
+    from pygeotools.lib import timelib
     driverName = "ESRI Shapefile"
     drv = ogr.GetDriverByName(driverName)
     if os.path.exists(out_fn):
@@ -640,7 +639,7 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
     gt = np.array(ds.GetGeoTransform())
     
     #Want to limit the dimensions of a, as notmasked_edges is slow
-    from . import iolib
+    from pygeotools.lib import iolib
     a = iolib.gdal_getma_sub(ds, scale=scale)
 
     #Create empty geometry
@@ -1160,7 +1159,7 @@ def gdaldem_wrapper(fn, product='hs'):
         print(' '.join(cmd))
         subprocess.call(cmd, shell=False)
         ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
-        from . import iolib
+        from pygeotools.lib import iolib
         bma = iolib.ds_getma(ds, 1)
     else:
         print("Invalid gdaldem option specified")
@@ -1225,7 +1224,7 @@ def get_geoid_offset(ds, geoid_srs=egm08_srs):
 #warplib writes out correct res/extent, but egm96 is empty
 #Eventually accept geoma
 def wgs84_to_egm96(dem_ds, geoid_dir=None):
-    from . import warplib
+    from pygeotools.lib import warplib
 
     #Check input dem_ds - make sure WGS84
 
@@ -1249,7 +1248,7 @@ def wgs84_to_egm96(dem_ds, geoid_dir=None):
     #ds_list = warplib.memwarp_multi([dem_ds, ds_list[1]], res='first', extent='first', t_srs='first')
 
     print("Extracting ma from dem and egm96 ds")
-    from . import iolib
+    from pygeotools.lib import iolib
     dem = iolib.ds_getma(ds_list[0])
     egm96 = iolib.ds_getma(ds_list[1])
 
@@ -1271,12 +1270,12 @@ def dem_geoid(dem_fn):
         print(' '.join(cmd))
         subprocess.call(cmd, shell=False)
     adj_ds = gdal.Open(adj_fn, gdal.GA_ReadOnly)
-    return adj_ds
-    #import iolib
+    #from pygeotools.lib import iolib
     #return iolib.ds_getma(adj_ds, 1)
+    return adj_ds
 
 def dem_geoid_offsetgrid_ds(ds, out_fn=None):
-    from . import iolib
+    from pygeotools.lib import iolib
     a = iolib.ds_getma(ds)
     a[:] = 0.0
     if out_fn is None:
@@ -1300,7 +1299,7 @@ def dem_geoid_offsetgrid(dem_fn):
 #Note: funcitonality with masking needs work
 def map_interp(bma, gt, stride=1, full_array=True):
     import scipy.interpolate
-    from . import malib
+    from pygeotools.lib import malib
     mx, my = get_xy_ma(bma, gt, stride, origmask=True)
     x, y, z = np.array([mx.compressed(), my.compressed(), bma.compressed()])
     #Define the domain for the interpolation
@@ -1386,7 +1385,7 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     #x = np.ma.array(x, mask=np.ma.getmaskarray(bma), fill_value=0)
     #y = np.ma.array(y, mask=np.ma.getmaskarray(bma), fill_value=0)
     if perc is not None:
-        from lib import filtlib
+        from pygeotools.lib import filtlib
         bma_f = filtlib.perc_fltr(bma, perc)
         x_f = np.ma.array(x, mask=np.ma.getmaskarray(bma_f), fill_value=0)
         y_f = np.ma.array(y, mask=np.ma.getmaskarray(bma_f), fill_value=0)
@@ -1401,7 +1400,7 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     return vals, resid, coeff
 
 def ds_fitplane(ds):
-    from . import iolib
+    from pygeotools.lib import iolib
     bma = iolib.ds_getma(ds)
     gt = ds.GetGeoTransform()
     return ma_fitplane(bma, gt)

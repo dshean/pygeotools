@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
-from osgeo import gdal, osr
-import numpy as np
+import os
 
-from . import malib
+import numpy as np
+from osgeo import gdal, gdal_array, osr
 
 #Functions for IO, mostly wrapped around GDAL
 #Written before RasterIO existed, which should probably be used instead of these 
@@ -41,7 +41,6 @@ def ds_getma(ds, bnum=1):
 def b_getma(b):
     b_ndv = get_ndv_b(b)
     bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
-    bma = malib.checkma(bma)
     return bma
 
 def get_sub_dim(src_ds, scale=None, maxdim=1024.):
@@ -68,7 +67,6 @@ def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
     #The buf_size parameters determine the final array dimensions
     b_array = b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)
     bma = np.ma.masked_equal(b_array, b_ndv)
-    bma = malib.checkma(bma)
     return bma
 
 #Note: need to consolidate with warplib.writeout (takes ds, not ma)
@@ -77,7 +75,8 @@ def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
 def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, create=False, sparse=False):
     #If input is not np.ma, this creates a new ma, which has default filL_value of 1E20
     #Must manually override with ndv
-    a = malib.checkma(a, fix=False)
+    from pygeotools.lib.malib import checkma 
+    a = checkma(a, fix=False)
     #Want to preserve fill_value if already specified
     if ndv is not None:
         a.set_fill_value(ndv)
@@ -150,7 +149,6 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
 #Move to geolib?
 #Look up equivalent GDAL data type
 def np_gdal_dtype(d):
-    from osgeo import gdal_array
     dt_dict = gdal_array.codes        
     if not isinstance(d, np.dtype):
         d = np.dtype(d)
@@ -218,12 +216,10 @@ def get_ndv_b(b):
 
 #Check for file existence
 def fn_check(fn):
-    import os
     return os.path.exists(fn)
 
 #This method avoids race condition, but is slower than simple os.path.exists
 def fn_check_full(fn):
-    import os
     status = True 
     if not os.path.isfile(fn): 
         status = False
@@ -251,7 +247,6 @@ def write_recarray(outfn, ra):
  
 #Check to make sure image doesn't contain errors
 def image_check(fn):
-    from osgeo import gdal
     ds = gdal.Open(fn)
     status = True 
     for i in range(ds.RasterCount):
