@@ -43,9 +43,19 @@ iolib.writeGTiff(rdiff, out_fn, ds_list[0])
 ```
 or, from the command line: 
 
-`warptool.py -tr 'max' -te 'intersection' -t_srs 'first' raster1.tif raster2.tif`
+Reproject all to match raster2.tif, clip to common intersection, resample all to largest pixel size 
 
-### Creating a nDarray "stack" object:
+`warptool.py -tr max -te intersection -t_srs first raster1.tif raster2.tif raster3.tif`
+
+Create version of raster1.tif that matches attributes of raster2.tif
+
+`warptool.py -tr raster2.tif -te raster2.tif -t_srs raster2.tif raster1.tif`
+
+Reproject raster1.tif and clip to user-defined extent, preserving original resolution
+
+`warptool.py -tr source -te '439090 5285360 458630 5306450' -t_srs EPSG:32610 raster1.tif`
+
+### Creating a time series "stack" object:
 ```
 from pygeotools.lib import malib
 fn_list = ['20080101_dem.tif', '20090101_dem.tif', '20100101_dem.tif']
