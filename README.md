@@ -5,7 +5,7 @@ Libraries and utilities for geospatial data processing/analysis
 
 ## Features
 - quickly resample rasters to common resolution/extent/projection
-- functions for NumPy masked arrays
+- various functions for NumPy masked arrays
 - simple coordinate transformations
 - automatic projection determination
 
@@ -28,9 +28,9 @@ Useful command-line utilities
 
 ## Examples 
 
-Warping multiple datasets to common grid and computing difference
+### Warping multiple datasets to common grid and computing difference
 ```
-from pygeotools import iolib, warplib, malib
+from pygeotools.lib import iolib, warplib, malib
 fn1 = 'raster1.tif'
 fn2 = 'raster2.tif'
 ds_list = warplib.memwarp_multi_fn([fn1, fn2], res='max', extent='intersection', t_srs='first', r='cubic')
@@ -42,18 +42,21 @@ out_fn = 'raster_diff.tif'
 iolib.writeGTiff(rdiff, out_fn, ds_list[0])
 ```
 or, from the command line: 
+
 `warptool.py -tr 'max' -te 'intersection' -t_srs 'first' raster1.tif raster2.tif`
 
-Creating a nDarray "stack" object (currently called DEMStack, but any 2.5D raster inputs will do):
+### Creating a nDarray "stack" object:
 ```
+from pygeotools.lib import malib
 fn_list = ['20080101_dem.tif', '20090101_dem.tif', '20100101_dem.tif']
 s = malib.DEMStack(fn_list, res='min', extent='union')
-#Standard deviation
+#Stack standard deviation
 s.stack_std
-#Linear fit 
+#Stack linear trend
 s.stack_trend
 ```
 or, from the command line: 
+
 `make_stack.py -tr 'min' -te 'union' 20*.tif`
 
 ## Documentation
@@ -66,6 +69,8 @@ Install the latest release from PyPI:
 
     pip install pygeotools 
 
+**Note**: by default, this will place some executable scripts to /usr/local/bin
+
 ### Building from source
 
 Clone the repository and install:
@@ -74,19 +79,19 @@ Clone the repository and install:
     pip install pygeotools/
 
 ### Core requirements 
-- GDAL 
-- NumPy 
+- [GDAL/OGR](http://www.gdal.org/)
+- [NumPy](http://www.numpy.org/)
 
 ### Optional requirements (needed for some functionality) 
-- Matplotlib
-- SciPy
-- NASA Ames Stereo Pipeline (Precompiled binaries and documentation available from https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/)
+- [matplotlib](http://matplotlib.org/)
+- [SciPy](https://www.scipy.org/)
+- [NASA Ames Stereo Pipeline (ASP)](https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/)
 
 ## Disclaimer 
 
 This originated as a poorly-written, poorly-organized personal repo that I am finally cleaning up and distributing.  There are some things that work very well, and other things that were hastily written for a one-off task several years ago.  
 
-This was all developed for Python 2.X, but will support Python 3.X in the near future.
+This was all originally developed for Python 2.X, but should now work with Python 3.X thanks to [@dlilien](https://github.com/dlilien)
 
 ## License
 
