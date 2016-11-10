@@ -7,9 +7,11 @@
 
 import sys
 import os
+import glob
 
 import numpy as np
-from osgeo import gdal, osr
+from osgeo import gdal
+from .iolib import np_gdal_dtype
 
 #Notes on geoma
 #Note: Need better init overloading
@@ -104,11 +106,14 @@ class DEMStack:
             self.makestack()
             #Initialize source and error lists
             self.source = ['None' for i in self.fn_list]
-            self.get_source()
+            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+            #self.get_source()
             self.error_dict_list = [None for i in self.fn_list]
-            self.get_error_dict_list()
+            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+            #self.get_error_dict_list()
             self.error = np.ma.zeros(len(self.fn_list))
-            self.get_error()
+            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+            #self.get_error()
             self.get_date_list() 
             if sort:
                 sort_idx = self.get_sortorder()
@@ -234,8 +239,8 @@ class DEMStack:
         #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
         self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
         #Might want to convert to proj4
-        self.proj = ds.GetProjectionRef()
-        self.gt = ds.GetGeoTransform()
+        self.proj = ds_list[0].GetProjectionRef()
+        self.gt = ds_list[0].GetGeoTransform()
         #Now set these for stack, regardless of input
         self.get_res()
         self.get_extent()
@@ -494,7 +499,6 @@ class DEMStack:
 
     #This needs some work - will break with nonstandard filenames
     def get_date_list(self):
-        import dateutil
         from . import timelib
         import matplotlib.dates
         from datetime import datetime
@@ -600,7 +604,6 @@ class DEMStack:
 
     #Compute linear regression for every pixel in stack
     def linreg(self, rsq=False, conf_test=False):
-        from numpy.linalg import solve
         #Only compute where we have n_min unmasked values in time
         if self.stats:
             count = self.stack_count
@@ -770,7 +773,6 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
         s = s_orig
 
     from . import geolib
-    res = s.res
     gt = s.gt
     s_shape = s.ma_stack.shape[1:3]
 
@@ -983,7 +985,6 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
 
 #Compute linear regression for every pixel in stack
 def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
-    from numpy.linalg import solve
     from . import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
@@ -1089,7 +1090,7 @@ def get_edges(a, convex=False):
     #This is a rough outline - needs testing
     if convex:
         from scipy.spatial import ConvexHull
-        hull = ConvexHull(edges.T)
+        #hull = ConvexHull(edges.T)
         #edges = edges.T[hull.simplices]
         #This is in scipy v0.14
         #edges0 = edges1 = hull.vertices
@@ -1492,7 +1493,7 @@ def print_stats(a, full=False):
     return stats
 
 def rmse(a):
-    ac = checkma(a).compressed()
+    checkma(a).compressed()
     rmse = np.sqrt(np.sum(a**2)/a.size)
     return rmse
 

@@ -349,7 +349,7 @@ def invertGeoTransform(geoTransform):
     outGeoTransform[1] = geoTransform[5] * invDet
     outGeoTransform[4] = -geoTransform[4] * invDet
     outGeoTransform[2] = -geoTransform[2] * invDet
-    outGeoTransfrom[5] = geoTransform[1] * invDet
+    outGeoTransform[5] = geoTransform[1] * invDet
     outGeoTransform[0] = (geoTransform[2] * geoTransform[3] - geoTransform[0] * geoTransform[5]) * invDet
     outGeoTransform[3] = (-geoTransform[1] * geoTransform[3] + geoTransform[0] * geoTransform[4]) * invDet
     return outGeoTransform
@@ -475,6 +475,7 @@ def mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32):
 #This computes extent and res
 #Might be simpler to create a temporary dataset
 def block_stats_gen(x,y,z,stat='median',bins=None,res=None):
+    from scipy import stats
     #res should be (x_res, y_res)
     #bins should be (x_bins, y_bins)
     range = np.array([[x.min(), x.max()],[y.min(), y.max()]])
@@ -490,6 +491,7 @@ def block_stats_gen(x,y,z,stat='median',bins=None,res=None):
     block_stat, xedges, yedges, bin = stats.binned_statistic_2d(x,y,z,stat,bins,range)
     #gt should be upper left pixel coords
     gt = (range[0][0], res[1], 0.0, range[1][1], 0.0, -res[0])
+    return gt  # TODO I think this is what you want to return here
 
 #Modify proj/gt of dst_fn in place
 def copyproj(src_fn, dst_fn, gt=True):
@@ -552,7 +554,7 @@ def shp_dict(shp_fn, fields=None, geom=True):
         for f_name in fields:
             i = str(feat.GetField(f_name))
             if 'date' in f_name:
-                date_f = f_name
+                # date_f = f_name
                 #If d is float, clear off decimal
                 i = i.rsplit('.')[0]
                 i = timelib.strptime_fuzzy(str(i))
@@ -566,13 +568,13 @@ def shp_dict(shp_fn, fields=None, geom=True):
 def shp2array(shp_fn, r_ds=None, res=None, extent=None):
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
-    dst_dt = gdal.GDT_Byte
+    # dst_dt = gdal.GDT_Byte
     ndv = 0
     if r_ds is not None:
         extent = ds_extent(r_ds)
         res = get_res(r_ds, square=True)[0] 
-        dst_ns = r_ds.RasterXSize
-        dst_nl = r_ds.RasterYSize
+        # dst_ns = r_ds.RasterXSize
+        # dst_nl = r_ds.RasterYSize
     else:
         if res is None:
             sys.exit("Must specify input res")
@@ -681,7 +683,7 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
         #Better ways to do this - binary mask, sum (see numpy2stl)
         #edges0, edges1, edges = malib.get_edges(a)
         px = np.ma.notmasked_edges(a, axis=0)
-        coord = []
+        # coord = []
         #Combine edge arrays, reversing order and adding first point to complete polygon
         x = np.concatenate((px[0][1][::1], px[1][1][::-1], [px[0][1][0]]))
         #x = np.concatenate((edges[0][1][::1], edges[1][1][::-1], [edges[0][1][0]]))
@@ -846,13 +848,13 @@ def get_ds_srs(ds):
 
 #Return True if ds has proper srs defined
 def srs_check(ds):
-    ds_srs = get_ds_srs(ds)
+    # ds_srs = get_ds_srs(ds)
     gt = np.array(ds.GetGeoTransform())
     gt_check = ~np.all(gt == np.array((0.0, 1.0, 0.0, 0.0, 0.0, 1.0)))
     proj_check = (ds.GetProjection() != '')
     #proj_check = ds_srs.IsProjected()
     out = False
-    if gt_check and proj_check :  
+    if gt_check and proj_check:  
         out = True
     return out
 
@@ -933,10 +935,10 @@ def extent_round(extent, res=1.0):
     #Should force initial stack reation to multiples of res
     extent_round = [nround(i, res) for i in extent]
     #Check that bounds are within existing extent
-    extent_round[0] = max(s.extent[0], extent_round[0])
-    extent_round[1] = max(s.extent[1], extent_round[1])
-    extent_round[2] = min(s.extent[2], extent_round[2])
-    extent_round[3] = min(s.extent[3], extent_round[3])
+    extent_round[0] = max(extent[0], extent_round[0])
+    extent_round[1] = max(extent[1], extent_round[1])
+    extent_round[2] = min(extent[2], extent_round[2])
+    extent_round[3] = min(extent[3], extent_round[3])
     return extent_round
 
 #Return dataset bbox envelope as geom
@@ -969,7 +971,6 @@ def geom_extent(geom):
 #Compute dataset extent using geom
 #This is cleaner than the approach above
 def ds_geom_extent(ds, t_srs=None):
-    ds_srs = get_ds_srs(ds)
     geom = ds_geom(ds, t_srs)
     return geom_extent(geom)
 
@@ -1164,8 +1165,8 @@ def gdaldem_wrapper(fn, product='hs'):
     import subprocess
     out_fn = os.path.splitext(fn)[0]+'_%s.tif' % product
     try:
-        with open(fn) as f: pass
-    except IOError as e:
+        open(fn)
+    except IOError:
         print("Unable to open %s" %fn)
 
     valid_opt = ['hillshade', 'hs', 'slope', 'aspect', 'color-relief', 'TRI', 'TPI', 'roughness']
@@ -1257,8 +1258,8 @@ def wgs84_to_egm96(dem_ds, geoid_dir=None):
     
     egm96_fn = geoid_dir+'/geoids-1.1/egm96-5.tif' 
     try:
-        with open(egm96_fn) as f: pass
-    except IOError as e:
+        open(egm96_fn)
+    except IOError:
         sys.exit("Unable to find "+egm96_fn)
     egm96_ds = gdal.Open(egm96_fn)
 
@@ -1422,7 +1423,8 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     return vals, resid, coeff
 
 def ds_fitplane(ds):
-    bma = ds_getma(ds)
+    from . import iolib
+    bma = iolib.ds_getma(ds)
     gt = ds.GetGeoTransform()
     return ma_fitplane(bma, gt)
 
@@ -1444,9 +1446,9 @@ def getUTMzone(geom):
     if (lat >= 56.0 and lat < 64.0 and lon180 >= 3.0 and lon180 < 12.0):
         zonenum = 32
     if (lat >= 72.0 and lat < 84.0): 
-        if (lon180 >= 0.0  and lon180 <  9.0): 
+        if (lon180 >= 0.0 and lon180 < 9.0): 
             zonenum = 31
-        elif (lon180 >= 9.0  and lon180 < 21.0):
+        elif (lon180 >= 9.0 and lon180 < 21.0):
             zonenum = 33
         elif (lon180 >= 21.0 and lon180 < 33.0):
             zonenum = 35

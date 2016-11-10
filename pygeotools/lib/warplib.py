@@ -31,7 +31,7 @@ import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 mem_drv = gdal.GetDriverByName('MEM')
-gtif_drv = gdal.GetDriverByName ("GTiff")
+gtif_drv = gdal.GetDriverByName("GTiff")
 gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 
 #Use this to warp to file - no need to write to memory then write to file 
@@ -180,8 +180,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     #Note: default maxerror=0.0
     #Shouldn't neet to specify srs?
     #result = gdal.ReprojectImage(src_ds, dst_ds, gra)
-    result = gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), \
-    gra, 0.0, 0.0, prog_func)
+    gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), gra, 0.0, 0.0, prog_func)
 
     #Return GDAL dataset object in memory
     if driver != mem_drv:

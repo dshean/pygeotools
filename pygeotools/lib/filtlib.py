@@ -16,7 +16,6 @@ import shutil
 import numpy as np
 import scipy
 import scipy.ndimage
-from osgeo import gdal
 
 from . import iolib
 from . import malib
@@ -32,8 +31,8 @@ from . import warplib
 #Absolute elevation range filter using an existing low-res DEM
 def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
     try:
-        with open(refdem_fn) as f: pass
-    except IOError as e:
+        open(refdem_fn)
+    except IOError:
         sys.exit('Unable to open reference DEM: %s' % refdem_fn)
 
     dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
@@ -44,26 +43,26 @@ def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
 
 def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
     if smooth:
-        refdem = gauss_fltr_astropy(refdem) 
-        dem = gauss_fltr_astropy(dem) 
+        refdem = gauss_fltr_astropy(refdem)
+        dem = gauss_fltr_astropy(dem)
 
     dz = refdem - dem
 
     #This is True for invalid values in DEM, and should be masked
     demmask = np.ma.getmaskarray(dem)
-  
+
     if perc:
         dz_perc = malib.calcperc(dz, perc)
         print("Applying dz percentile filter (%s%%, %s%%): (%0.1f, %0.1f)" % (perc[0], perc[1], dz_perc[0], dz_perc[1]))
         #This is True for invalid values
         perc_mask = ((dz < dz_perc[0]) | (dz > dz_perc[1])).filled(False)
-        demmask = (demmask | abs_dz_mask)
+        demmask = (demmask | perc_mask)
 
     if abs_dz_lim:
         #This is True for invalid values
         abs_dz_mask = ((np.abs(dz) < abs_dz_lim[0]) | (np.abs(dz) > abs_dz_lim[1])).filled(False)
         if True:
-            cutoff = 150 
+            cutoff = 150
             abs_dz_lim = (0, 80)
             low = (refdem < cutoff).data
             abs_dz_mask[low] = ((np.abs(dz) < abs_dz_lim[0]) | (np.abs(dz) > abs_dz_lim[1])).filled(False)[low]
@@ -75,14 +74,14 @@ def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
 #Absolute elevation range filter using an existing low-res DEM
 def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
     try:
-        with open(refdem_fn) as f: pass
-    except IOError as e:
+        open(refdem_fn)
+    except IOError:
         sys.exit('Unable to open reference DEM: %s' % refdem_fn)
 
     dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
     dem = iolib.ds_getma(dem_ds)
-    refdem = iolib.ds_getma(ref_ds)
-    
+    refdem = iolib.ds_getma(refdem_ds)
+
     rangelim = (refdem.min(), refdem.max())
     rangelim = (rangelim[0] - pad, rangelim[1] + pad)
 
@@ -111,7 +110,7 @@ def perc_fltr(dem, perc=(1.0, 99.0)):
 def threesigma(dem):
     std = dem.std()
     u = dem.mean()
-    rangelim = (m - 3*std, u + 3*std)
+    rangelim = (u - 3*std, u + 3*std)
     out = range_fltr(dem, rangelim)
     return out
 
@@ -196,7 +195,7 @@ def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior
     kernel = astropy.convolution.Gaussian2DKernel(sigma, x_size=size, y_size=size, mode='oversample')
     print("Applying gaussian smoothing filter with size %s and sigma %s" % (size, sigma))
     print('Kernel shape: ', kernel.shape)
-    print('Kernel sigma: ', sigma) 
+    print('Kernel sigma: ', sigma)
     print('Kernel sum: ', kernel.array.sum())
     #This will fill holes
     #np.nan is float
@@ -396,7 +395,7 @@ def uniform_fltr(dem, fsize=7):
 
 def butter_low(dt_list, val, lowpass=1.0):
     import scipy.signal
-    val_mask = np.ma.getmaskarray(val)
+    #val_mask = np.ma.getmaskarray(val)
     #dt is 300 s, 5 min
     dt_diff = np.diff(dt_list)
     if isinstance(dt_diff[0], float):
@@ -413,8 +412,8 @@ def butter_low(dt_list, val, lowpass=1.0):
     b, a = scipy.signal.butter(order, f_max, btype='lowpass')
     #b, a = sp.signal.butter(order, (f_min, f_max), btype='bandstop')
     w, h = scipy.signal.freqz(b, a, worN=2000)
-    w_f = (nyq/np.pi)*w
-    w_f_days = 1/w_f/86400.
+    # w_f = (nyq/np.pi)*w
+    # w_f_days = 1/w_f/86400.
     #plt.plot(w_f_days, np.abs(h))
 
     val_f = scipy.signal.filtfilt(b, a, val)
@@ -423,6 +422,8 @@ def butter_low(dt_list, val, lowpass=1.0):
 #This is framework for a butterworth bandpass for 1D data
 #Needs to be cleaned up and generalized
 def butter(dt_list, val, lowpass=1.0):
+    import scipy.signal
+    import matplotlib.pyplot as plt
     #dt is 300 s, 5 min
     dt_diff = np.diff(dt_list)
     dt_diff = np.array([dt.total_seconds() for dt in dt_diff])
@@ -434,8 +435,8 @@ def butter(dt_list, val, lowpass=1.0):
 
     if False:
         #psd, f = psd(z_msl, fs) 
-        sp_f, sp_psd = sp.signal.periodogram(val, fs, detrend='linear')
-        #sp_f, sp_psd = sp.signal.welch(z_msl, fs, nperseg=2048)
+        sp_f, sp_psd = scipy.signal.periodogram(val, fs, detrend='linear')
+        #sp_f, sp_psd = scipy.signal.welch(z_msl, fs, nperseg=2048)
         sp_f_days = 1./sp_f/86400.
 
         plt.figure()
@@ -451,25 +452,26 @@ def butter(dt_list, val, lowpass=1.0):
     f_max = (1./(86400*0.1)) / nyq
     f_min = (1./(86400*1.8)) / nyq
     order = 6
-    b, a = sp.signal.butter(order, f_min, btype='highpass')
+    b, a = scipy.signal.butter(order, f_min, btype='highpass')
     #b, a = sp.signal.butter(order, (f_min, f_max), btype='bandpass')
-    w, h = sp.signal.freqz(b, a, worN=2000)
+    w, h = scipy.signal.freqz(b, a, worN=2000)
     w_f = (nyq/np.pi)*w
     w_f_days = 1/w_f/86400.
     #plt.figure()
     #plt.plot(w_f_days, np.abs(h))
-    val_f_tide = sp.signal.filtfilt(b, a, val)
+    val_f_tide = scipy.signal.filtfilt(b, a, val)
 
-    b, a = sp.signal.butter(order, f_max, btype='lowpass')
+    b, a = scipy.signal.butter(order, f_max, btype='lowpass')
     #b, a = sp.signal.butter(order, (f_min, f_max), btype='bandstop')
-    w, h = sp.signal.freqz(b, a, worN=2000)
+    w, h = scipy.signal.freqz(b, a, worN=2000)
     w_f = (nyq/np.pi)*w
     w_f_days = 1/w_f/86400.
     #plt.plot(w_f_days, np.abs(h))
 
-    val_f_tide_denoise = sp.signal.filtfilt(b, a, val_f_tide)
+    val_f_tide_denoise = scipy.signal.filtfilt(b, a, val_f_tide)
     #val_f_notide = sp.signal.filtfilt(b, a, val)
     val_f_notide = val - val_f_tide 
+    # TODO Does this need to return something
 
 #This is a framework for 2D FFT filtering
 #It has not be tested or finished - Ben suggests this is a dead end
@@ -493,7 +495,7 @@ def freq_filt(bma):
 
     #np.log(np.abs(ff))
 
-    perc = malib.calcperc(numpy.real(ff), perc=(80, 95))
+    #perc = malib.calcperc(np.real(ff), perc=(80, 95))
     #malib.iv(numpy.real(ff), clim=perc)
 
     #See http://scipy-lectures.github.io/advanced/image_processing/
@@ -503,13 +505,13 @@ def freq_filt(bma):
     #Mask [argmax[y]-1:argmax[y]+1]
 
     #Create radial mask
-    ff_dim = numpy.array(ff.shape)
+    ff_dim = np.array(ff.shape)
     a,b = ff_dim/2
     n = ff_dim.max()
-    y,x = numpy.ogrid[-a:n-a, -b:n-b]
+    y,x = np.ogrid[-a:n-a, -b:n-b]
     r1 = 40 
     r2 = 60 
-    ff_mask = numpy.ma.make_mask(ff)
+    ff_mask = np.ma.make_mask(ff)
     radial_mask = (r1**2 <= x**2 + y**2) & (x**2 + y**2 < r2**2)
     #Note issues with rounding indices here
     #Hacked in +1 for testing
@@ -525,7 +527,7 @@ def freq_filt(bma):
     bf_filt = scipy.fftpack.ifft2(scipy.fftpack.ifftshift(fm))
 
     #Apply original mask
-    bf_filt = numpy.ma.masked_array(bf_filt, bma.mask)
+    bf_filt = np.ma.masked_array(bf_filt, bma.mask)
 
     #Abs will go from complex to real, but need to preserve sign
     #malib.iv(numpy.real(bf_filt))
@@ -586,4 +588,3 @@ z_smooth(mask==0)=NaN;
 I.x=I.x(1:8:end); I.y=I.y(1:8:end); I.z=z_smooth(1:8:end, 1:8:end);
 
 """
-

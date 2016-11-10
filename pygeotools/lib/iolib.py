@@ -198,9 +198,9 @@ def get_ndv_b(b):
         ns = b.XSize
         nl = b.YSize
         ul = float(b.ReadAsArray(0, 0, 1, 1))
-        ur = float(b.ReadAsArray(ns-1, 0, 1, 1))
+        #ur = float(b.ReadAsArray(ns-1, 0, 1, 1))
         lr = float(b.ReadAsArray(ns-1, nl-1, 1, 1))
-        ll = float(b.ReadAsArray(0, nl-1, 1, 1))
+        #ll = float(b.ReadAsArray(0, nl-1, 1, 1))
         #Probably better to use 3/4 corner criterion
         #if ul == ur == lr == ll:
         if np.isnan(ul) or ul == lr:
@@ -251,7 +251,6 @@ def write_recarray(outfn, ra):
  
 #Check to make sure image doesn't contain errors
 def image_check(fn):
-    import sys
     from osgeo import gdal
     ds = gdal.Open(fn)
     status = True 
