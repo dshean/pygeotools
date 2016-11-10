@@ -18,10 +18,10 @@ import scipy
 import scipy.ndimage
 from osgeo import gdal
 
-import iolib
-import malib
-import geolib
-import warplib
+from . import iolib
+from . import malib
+from . import geolib
+from . import warplib
 
 #Note:
 #Original main casts input as float32 so np.nan filling works
@@ -54,7 +54,7 @@ def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
   
     if perc:
         dz_perc = malib.calcperc(dz, perc)
-        print "Applying dz percentile filter (%s%%, %s%%): (%0.1f, %0.1f)" % (perc[0], perc[1], dz_perc[0], dz_perc[1])
+        print("Applying dz percentile filter (%s%%, %s%%): (%0.1f, %0.1f)" % (perc[0], perc[1], dz_perc[0], dz_perc[1]))
         #This is True for invalid values
         perc_mask = ((dz < dz_perc[0]) | (dz > dz_perc[1])).filled(False)
         demmask = (demmask | abs_dz_mask)
@@ -86,20 +86,20 @@ def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
     rangelim = (refdem.min(), refdem.max())
     rangelim = (rangelim[0] - pad, rangelim[1] + pad)
 
-    print 'Excluding values outside of padded ({0:0.1f} m) lowres DEM range: {1:0.1f} to {2:0.1f} m'.format(pad, *rangelim)
+    print('Excluding values outside of padded ({0:0.1f} m) lowres DEM range: {1:0.1f} to {2:0.1f} m'.format(pad, *rangelim))
     out = range_fltr(dem, rangelim)
     return out
 
 #Check input range
 def range_fltr(dem, rangelim):
-    print 'Excluding values outside of range: {0:0.1f} to {1:0.1f} m'.format(*rangelim)
+    print('Excluding values outside of range: {0:0.1f} to {1:0.1f} m'.format(*rangelim))
     out = np.ma.masked_outside(dem, *rangelim)
     out.set_fill_value(dem.fill_value)
     return out
 
 def perc_fltr(dem, perc=(1.0, 99.0)):
     rangelim = malib.calcperc(dem, perc)
-    print 'Excluding values outside of percentile ({0:0.2f}, {1:0.2f}) range: {2:0.1f} to {3:0.1f} m'.format(*(perc + rangelim))
+    print('Excluding values outside of percentile ({0:0.2f}, {1:0.2f}) range: {2:0.1f} to {3:0.1f} m'.format(*(perc + rangelim)))
     out = range_fltr(dem, rangelim)
     return out
 
@@ -120,7 +120,7 @@ def mad_fltr(dem, mad_sigma=2):
     med = np.ma.median(dem)
     mad = malib.mad(dem)
     rangelim = (med - mad_sigma * mad, med + mad_sigma * mad)
-    print 'Excluding values outside of range defined by {0} mad sigma: {1:0.1f} to {2:0.1f} m'.format(mad_sigma, *rangelim)
+    print('Excluding values outside of range defined by {0} mad sigma: {1:0.1f} to {2:0.1f} m'.format(mad_sigma, *rangelim))
     out = range_fltr(dem, rangelim)
     return out
 
@@ -139,7 +139,7 @@ def slope_fltr(dem_fn, slopelim=(0.1, 40)):
 
 #Smooth with gaussian filter
 def gauss_fltr(dem, sigma=1):
-    print "Applying gaussian smoothing filter with sigma %s" % sigma
+    print("Applying gaussian smoothing filter with sigma %s" % sigma)
     #Note, ndimage doesn't properly handle ma - convert to nan
     dem_filt_gauss = scipy.ndimage.filters.gaussian_filter(dem.filled(np.nan), sigma)
     #Now mask all nans
@@ -194,10 +194,10 @@ def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior
         size = int(np.ceil((sigma * (2*truncate) + 1)/2)*2 - 1)
     size = max(size, 3)
     kernel = astropy.convolution.Gaussian2DKernel(sigma, x_size=size, y_size=size, mode='oversample')
-    print "Applying gaussian smoothing filter with size %s and sigma %s" % (size, sigma)
-    print 'Kernel shape: ', kernel.shape
-    print 'Kernel sigma: ', sigma 
-    print 'Kernel sum: ', kernel.array.sum()
+    print("Applying gaussian smoothing filter with size %s and sigma %s" % (size, sigma))
+    print('Kernel shape: ', kernel.shape)
+    print('Kernel sigma: ', sigma) 
+    print('Kernel sum: ', kernel.array.sum())
     #This will fill holes
     #np.nan is float
     #dem_filt_gauss = astropy.nddata.convolve(dem.astype(float).filled(np.nan), kernel, boundary='fill', fill_value=np.nan)
@@ -206,7 +206,7 @@ def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior
     dem_filt_gauss = astropy.convolution.convolve(dem.astype(float).filled(np.nan), kernel, boundary='fill', fill_value=np.nan, normalize_kernel=True)
     #This will preserve original ndv pixels, applying original mask after filtering
     if origmask:
-        print "Applying original mask"
+        print("Applying original mask")
         #Allow filling of interior holes, but use original outer edge
         if fill_interior:
             mask = malib.maskfill(dem)
@@ -238,7 +238,7 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
     #dem2 = dem
     from scipy.ndimage import zoom
     for n in range(levels):
-        print dem2.shape
+        print(dem2.shape)
         dim = (np.floor(np.array(dem2.shape)/2.0 + 1)*2).astype(int)
         #dem2 = gauss_fltr_astropy(dem2, size=5, origmask=origmask)
         #dem2 = gauss_fltr_astropy(dem2, size=5)
@@ -248,13 +248,13 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
         #dem2 = zoom(dem2, 0.5, order=1, prefilter=False, cval=dem.fill_value)
         dem2 = dem2[::2,::2]
     if full:
-        print "Resizing to original input dimensions"
+        print("Resizing to original input dimensions")
         for n in range(levels):
-            print dem2.shape
+            print(dem2.shape)
             #Note: order 1 is bilinear
             dem2 = zoom(dem2, 2, order=1, prefilter=False, cval=dem.fill_value)
         #dem2 = zoom(dem2, 2**levels, order=1, prefilter=False, cval=dem2.fill_value)
-        print dem2.shape
+        print(dem2.shape)
         #This was for power of 2 offset
         #offset = (2**levels)/2
         #print offset
@@ -262,7 +262,7 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
         #Use original offset
         dem2 = dem2[offset[0]:dem.shape[0]+offset[0],offset[1]:dem.shape[1]+offset[1]]
         if origmask:
-            print "Applying original mask"
+            print("Applying original mask")
             #Allow filling of interior holes, but use original outer edge
             maskfill = malib.maskfill(dem)
             #dem2 = np.ma.array(dem2, mask=np.ma.getmaskarray(dem))
@@ -300,7 +300,7 @@ def bandpass(dem, size1=None, size2=None):
 
 #Smooth and remove noise with median filter 
 def median_fltr(dem, fsize=7, origmask=False):
-    print "Applying median filter with size %s" % fsize
+    print("Applying median filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
     dem_filt_med = scipy.ndimage.filters.median_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
@@ -315,7 +315,7 @@ def median_fltr_opencv(dem, size=3, iterations=1):
     import cv2
     dem = malib.checkma(dem)
     if size > 5:
-        print "Need to implement iteration"
+        print("Need to implement iteration")
     n = 0
     out = dem
     while n <= iterations:
@@ -353,9 +353,9 @@ def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
     dem = dem.astype(np.float64)
     #Mask islands
     if erode > 0:
-        print "Eroding islands smaller than %s pixels" % (erode * 2) 
+        print("Eroding islands smaller than %s pixels" % (erode * 2)) 
         dem = malib.mask_islands(dem, iterations=erode)
-    print "Applying median filter with radius %s" % radius 
+    print("Applying median filter with radius %s" % radius) 
     #Note: this funcitonality was present in scikit-image 0.9.3
     import skimage.filter
     dem_filt_med = skimage.filter.median_filter(dem, radius, mask=~dem.mask)
@@ -375,7 +375,7 @@ def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
     #Should probably replace the ndv with original ndv
     out.set_fill_value(dem.fill_value)
     if origmask:
-        print "Applying original mask"
+        print("Applying original mask")
         #Allow filling of interior holes, but use original outer edge
         #maskfill = malib.maskfill(dem, iterations=radius)
         maskfill = malib.maskfill(dem)
@@ -386,7 +386,7 @@ def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
 #Note: this has some nasty ringing
 #Uniform (mean) filter 
 def uniform_fltr(dem, fsize=7):
-    print "Applying uniform filter with size %s" % fsize
+    print("Applying uniform filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
     dem_filt_med = scipy.ndimage.filters.uniform_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
@@ -445,7 +445,7 @@ def butter(dt_list, val, lowpass=1.0):
         plt.xlabel('Frequency')
         plt.ylabel('Power')
 
-    print "Filtering tidal signal"
+    print("Filtering tidal signal")
     #Define bandpass filter
     #f_min = dt/(86400*0.25)
     f_max = (1./(86400*0.1)) / nyq

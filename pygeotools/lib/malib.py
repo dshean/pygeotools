@@ -155,7 +155,7 @@ class DEMStack:
 
     #This stores list
     def get_extent(self):
-        import geolib
+        from . import geolib
         #Should check to make sure gt is defined
         self.extent = geolib.gt_extent(self.gt, self.ma_stack.shape[2], self.ma_stack.shape[1])
 
@@ -175,7 +175,7 @@ class DEMStack:
     #This is pretty clunky
     def get_source(self):
         for i, fn in enumerate(self.fn_list):
-            for key, d in source_dict.iteritems():
+            for key, d in source_dict.items():
                 if d['fn_pattern'] in fn:
                     self.source[i] = key
                     break
@@ -202,9 +202,9 @@ class DEMStack:
                     self.error[i] = source_dict[self.source[i]]['error']
 
     def makestack(self):
-        import warplib
-        import iolib
-        print "Creating stack of %i files" % len(self.fn_list)
+        from . import warplib
+        from . import iolib
+        print("Creating stack of %i files" % len(self.fn_list))
         #Jako front 
         #res = 16
         res = 'min'
@@ -220,16 +220,16 @@ class DEMStack:
             srs = self.srs
         ds_list = warplib.memwarp_multi_fn(self.fn_list, res=res, extent=extent, t_srs=srs)
         #Check to eliminate empty datasets
-        import geolib
+        from . import geolib
         #Returns True if empty
         bad_ds_idx = np.array([geolib.ds_IsEmpty(ds) for ds in ds_list])
         if np.any(bad_ds_idx):
-            print "\n%i empty ds removed:" % len(bad_ds_idx.nonzero()[0])
-            print np.array(self.fn_list)[bad_ds_idx]
+            print("\n%i empty ds removed:" % len(bad_ds_idx.nonzero()[0]))
+            print(np.array(self.fn_list)[bad_ds_idx])
             self.fn_list = np.array(self.fn_list)[~bad_ds_idx].tolist()
-            print "%i valid input ds\n" % len(self.fn_list) 
+            print("%i valid input ds\n" % len(self.fn_list)) 
             self.get_stack_fn()
-        print "Creating ma_stack"
+        print("Creating ma_stack")
         #Note: might not need ma here in the 0 axis - shouldn't be any missing data
         #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
         self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
@@ -258,7 +258,7 @@ class DEMStack:
     #Create separate array of datetime objects
     def make_datestack(self):
         self.datestack = True
-        print "Creating datestack"
+        print("Creating datestack")
         self.dt_stack = np.ma.copy(self.ma_stack).astype(self.dtype)
         for n, dt_o in enumerate(self.date_list_o):
             self.dt_stack[n].data[:] = dt_o
@@ -270,7 +270,7 @@ class DEMStack:
 
     def compute_dt_stats(self):
         self.datestack = True
-        print "Computing date stats"
+        print("Computing date stats")
         allmask = np.ma.getmaskarray(self.ma_stack).all(axis=0)
         minidx = np.argmin(np.ma.getmaskarray(self.ma_stack), axis=0)
         maxidx = np.argmin(np.ma.getmaskarray(self.ma_stack[::-1]), axis=0)
@@ -289,13 +289,13 @@ class DEMStack:
         #Then create grids by pulling out corresponding value from date_list_o
 
     def write_datestack(self):
-        import iolib
+        from . import iolib
         #stat_list = ['dt_stack_ptp', 'dt_stack_mean', 'dt_stack_min', 'dt_stack_max', 'dt_stack_center']
         stat_list = ['dt_stack_ptp', 'dt_stack_min', 'dt_stack_max', 'dt_stack_center']
         if any([not hasattr(self, i) for i in stat_list]):
             #self.make_datestack()
             self.compute_dt_stats()
-        print "Writing out datestack stats"
+        print("Writing out datestack stats")
         #Create dummy ds - might want to use vrt here instead
         driver = gdal.GetDriverByName("MEM")
         ds = driver.Create('', self.dt_stack_ptp.shape[1], self.dt_stack_ptp.shape[0], 1, gdal.GDT_Float32)
@@ -317,7 +317,7 @@ class DEMStack:
     #Note: want ot change the variable names min/max here
     #Might be better to save out as multiband GTiff here
     def savestack(self):
-        print "Saving stack to: %s" % self.stack_fn
+        print("Saving stack to: %s" % self.stack_fn)
         out_args = {}
         out_args['ma_stack_full'] = self.ma_stack.filled(np.nan)
         out_args['proj'] = str(self.proj)
@@ -365,7 +365,7 @@ class DEMStack:
         f.close()
 
     def loadstack(self):
-        print "Loading stack from: %s" % self.stack_fn
+        print("Loading stack from: %s" % self.stack_fn)
         data = np.load(self.stack_fn)
         self.fn_list = list(data['fn_list'])
         #Load flags originally used for stack creation
@@ -385,14 +385,14 @@ class DEMStack:
             self.error_dict_list = [None for i in self.fn_list]
         #This is a shortcut, should load from the data['date_list'] arrays
         if 'date_list_o' in data:
-            import timelib
+            from . import timelib
             from datetime import datetime
             self.date_list_o = np.ma.fix_invalid(data['date_list_o'], fill_value=1.0)
             #This is a hack - need universal timelib time zone support or stripping
             self.date_list = np.ma.masked_equal([i.replace(tzinfo=None) for i in timelib.o2dt(self.date_list_o)], datetime(1,1,1))
         else:
             self.get_date_list()
-        print "Loading ma stack"
+        print("Loading ma stack")
         self.ma_stack = np.ma.fix_invalid(data['ma_stack_full']).astype(self.dtype)
         #Note: the str is an intermediate fix - all new stacks should have str written
         self.proj = str(data['proj'])
@@ -400,7 +400,7 @@ class DEMStack:
         if 'gt' in data:
             self.gt = data['gt']
         else:
-            print "No geotransform found in stack"
+            print("No geotransform found in stack")
             #Check if res and extent are defined - can reconstruct
             #Should throw error
         #Note: Once we have gt, could just run get_res() and get_extent() to avoid the following
@@ -438,7 +438,7 @@ class DEMStack:
             #statlist = ['dt_stack', 'dt_mean', 'dt_ptp', 'dt_min', 'dt_max', 'dt_center']
             statlist = ['dt_ptp', 'dt_min', 'dt_max', 'dt_center']
             if all([s in data for s in statlist]):
-                print "Loading datestack"
+                print("Loading datestack")
                 #self.dt_stack = np.ma.fix_invalid(data['dt_stack']).astype(self.dtype)
                 #self.dt_stack_mean = np.ma.fix_invalid(data['dt_mean'], fill_value=-9999).astype(self.dtype)
                 self.dt_stack_ptp = np.ma.fix_invalid(data['dt_ptp'], fill_value=-9999).astype(self.dtype)
@@ -457,7 +457,7 @@ class DEMStack:
             if self.med:
                 statlist.append('med')
             if all([s in data for s in statlist]):
-                print "Loading stats"
+                print("Loading stats")
                 self.stack_count = np.ma.masked_equal(data['count'], 0).astype(np.uint16)
                 self.stack_mean = np.ma.fix_invalid(data['mean'], fill_value=-9999).astype(self.dtype)
                 self.stack_std = np.ma.fix_invalid(data['std'], fill_value=-9999).astype(self.dtype)
@@ -478,7 +478,7 @@ class DEMStack:
             #statlist = ['trend', 'intercept', 'detrended_std', 'rsquared']
             statlist = ['trend', 'intercept', 'detrended_std']
             if all([s in data for s in statlist]):
-                print "Loading trend"
+                print("Loading trend")
                 self.stack_trend = np.ma.fix_invalid(data['trend'], fill_value=-9999).astype(self.dtype)
                 self.stack_intercept = np.ma.fix_invalid(data['intercept'], fill_value=-9999).astype(self.dtype)
                 self.stack_detrended_std = np.ma.fix_invalid(data['detrended_std'], fill_value=-9999).astype(self.dtype)
@@ -495,7 +495,7 @@ class DEMStack:
     #This needs some work - will break with nonstandard filenames
     def get_date_list(self):
         import dateutil
-        import timelib
+        from . import timelib
         import matplotlib.dates
         from datetime import datetime
         #self.date_list = np.ma.array([dateutil.parser.parse(os.path.split(fn)[1][0:13], fuzzy=True) for fn in self.fn_list])
@@ -506,25 +506,25 @@ class DEMStack:
         self.date_list_o = np.ma.array([matplotlib.dates.date2num(d) for d in self.date_list.filled()], mask=self.date_list.mask)
 
     def compute_stats(self):
-        print "Compute stack count"
+        print("Compute stack count")
         self.stack_count = np.ma.masked_equal(self.ma_stack.count(axis=0), 0).astype(np.uint16)
         self.stack_count.set_fill_value(0)
-        print "Compute stack mean"
+        print("Compute stack mean")
         self.stack_mean = self.ma_stack.mean(axis=0).astype(self.dtype)
         self.stack_mean.set_fill_value(-9999)
-        print "Compute stack std"
+        print("Compute stack std")
         self.stack_std = self.ma_stack.std(axis=0).astype(self.dtype)
         #Only want to preserve values where count > 1
         self.stack_std.mask = (self.stack_count <= 1) 
         self.stack_std.set_fill_value(-9999)
-        print "Compute stack min"
+        print("Compute stack min")
         self.stack_min = self.ma_stack.min(axis=0).astype(self.dtype)
         self.stack_min.set_fill_value(-9999)
-        print "Compute stack max"
+        print("Compute stack max")
         self.stack_max = self.ma_stack.max(axis=0).astype(self.dtype)
         self.stack_max.set_fill_value(-9999)
         if self.med:
-            print "Compute stack med"
+            print("Compute stack med")
             #For numpy >1.9.0
             if 'nanmedian' in dir(np):
                 self.stack_med = nanfill(self.ma_stack, np.nanmedian, axis=0).astype(self.dtype)
@@ -533,7 +533,7 @@ class DEMStack:
             self.stack_med.set_fill_value(-9999)
 
     def compute_trend(self):
-        print "Compute stack linear trend"
+        print("Compute stack linear trend")
         self.linreg()
         self.stack_trend.set_fill_value(-9999)
         self.stack_intercept.set_fill_value(-9999) 
@@ -541,14 +541,14 @@ class DEMStack:
         #self.stack_rsquared.set_fill_value(-9999) 
 
     def write_stats(self):
-        import iolib
+        from . import iolib
         #if not hasattr(self, 'stack_count'):
         stat_list = ['stack_count', 'stack_mean', 'stack_std', 'stack_min', 'stack_max']
         if self.med:
             stat_list.append('stack_med')
         if any([not hasattr(self, i) for i in stat_list]):
             self.compute_stats()
-        print "Writing out stats"
+        print("Writing out stats")
         #Create dummy ds - might want to use vrt here instead
         driver = gdal.GetDriverByName("MEM")
         ds = driver.Create('', self.ma_stack.shape[2], self.ma_stack.shape[1], 1, gdal.GDT_Float32)
@@ -565,12 +565,12 @@ class DEMStack:
             iolib.writeGTiff(self.stack_med, out_prefix+'_med.tif', ds)
 
     def write_trend(self):
-        import iolib
+        from . import iolib
         #stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std', 'stack_rsquared']
         stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std']
         if any([not hasattr(self, i) for i in stat_list]):
             self.compute_trend()
-        print "Writing out trend"
+        print("Writing out trend")
         #Create dummy ds - might want to use vrt here instead
         driver = gdal.GetDriverByName("MEM")
         ds = driver.Create('', self.ma_stack.shape[2], self.ma_stack.shape[1], 1, gdal.GDT_Float32)
@@ -607,7 +607,7 @@ class DEMStack:
         else:
             count = np.ma.masked_equal(self.ma_stack.count(axis=0), 0).astype(np.uint16)
             count.set_fill_value(0)
-        print "Excluding pixels with count < %i" % self.n_thresh
+        print("Excluding pixels with count < %i" % self.n_thresh)
         valid_idx = (count.data >= self.n_thresh)
         #Want to avoid computing trend where dt is small
         #Note, actual minimum depends on magnitude of trend
@@ -622,7 +622,7 @@ class DEMStack:
             #If no datestack
             #max_dt_ptp = np.ptp(calcperc(self.date_list_o, (4, 96)))
             self.min_dt_ptp = 0.10 * max_dt_ptp
-        print "Excluding pixels with dt range < %0.2f days" % self.min_dt_ptp 
+        print("Excluding pixels with dt range < %0.2f days" % self.min_dt_ptp) 
         valid_idx = valid_idx & (self.dt_stack_ptp > self.min_dt_ptp)
         y_orig = self.ma_stack[:, valid_idx]
         #Reshape to 2D
@@ -642,7 +642,7 @@ class DEMStack:
         a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
         b = np.dot(X.T, (mask*y))
         #Solve for slope/intercept
-        print "Solving for trend"
+        print("Solving for trend")
         r = np.linalg.solve(a, b.T)
         #Reshape to original dimensions
         #r = r.reshape(origshape[1], origshape[2], 2)
@@ -714,24 +714,24 @@ class DEMStack:
             self.write_stats()
         hs_fn = os.path.splitext(in_fn)[0]+'_hs.tif'
         if not os.path.exists(hs_fn):
-            import geolib
-            print "Generate shaded relief from mean"
+            from . import geolib
+            print("Generate shaded relief from mean")
             self.stack_mean_hs = geolib.gdaldem_wrapper(in_fn, 'hs')
         else:
-            import iolib
+            from . import iolib
             self.stack_mean_hs = iolib.fn_getma(hs_fn)
 
 def stack_smooth(s_orig, size=7, save=False):
     from copy import deepcopy
-    import filtlib
-    print "Copying original DEMStack"
+    from . import filtlib
+    print("Copying original DEMStack")
     s = deepcopy(s_orig)
     s.stack_fn = os.path.splitext(s_orig.stack_fn)[0]+'_smooth%ipx.npz' % size
 
     #Loop through each array and smooth
-    print "Smoothing all arrays in stack with %i px gaussian filter" % size
+    print("Smoothing all arrays in stack with %i px gaussian filter" % size)
     for i in range(s.ma_stack.shape[0]):
-        print '%i of %i' % (i+1, s.ma_stack.shape[0])
+        print('%i of %i' % (i+1, s.ma_stack.shape[0]))
         s.ma_stack[i] = filtlib.gauss_fltr_astropy(s.ma_stack[i], size=size)
 
     if s.stats:
@@ -763,13 +763,13 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
     #To be safe, if we are saving out, create a copy to avoid overwriting
     if copy or save:
         from copy import deepcopy
-        print "Copying original DEMStack"
+        print("Copying original DEMStack")
         s = deepcopy(s_orig)
     else:
         #Want to be very careful here, as we could overwrite the original file
         s = s_orig
 
-    import geolib
+    from . import geolib
     res = s.res
     gt = s.gt
     s_shape = s.ma_stack.shape[1:3]
@@ -810,21 +810,21 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
     #Note: no need to copy again
     s_sub = get_stack_subset(s, idx, out_stack_fn=out_stack_fn, copy=False, save=False) 
 
-    print
-    print "Orig filename:", s_orig.stack_fn
-    print "Orig extent:", s_orig.extent
-    print "Orig dimensions:", s_orig.ma_stack.shape
-    print
-    print "Input extent:", extent
-    print "New filename:", s_sub.stack_fn
-    print "New extent:", s_sub.extent
-    print "New dimensions:", s_sub.ma_stack.shape
-    print
+    print()
+    print("Orig filename:", s_orig.stack_fn)
+    print("Orig extent:", s_orig.extent)
+    print("Orig dimensions:", s_orig.ma_stack.shape)
+    print()
+    print("Input extent:", extent)
+    print("New filename:", s_sub.stack_fn)
+    print("New extent:", s_sub.extent)
+    print("New dimensions:", s_sub.ma_stack.shape)
+    print()
     
     if save:
         if os.path.abspath(s_orig.stack_fn) == os.path.abspath(s_sub.stack_fn):
-            print "Original stack would be overwritten!"
-            print "Skipping save"
+            print("Original stack would be overwritten!")
+            print("Skipping save")
         else:
             s_sub.save = True
             s_sub.savestack()
@@ -853,7 +853,7 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
         #To be safe, if we are saving out, create a copy to avoid overwriting
         if copy or save:
             from copy import deepcopy
-            print "Copying original DEMStack"
+            print("Copying original DEMStack")
             s = deepcopy(s_orig)
         else:
             #Want to be very careful here, as we could overwrite the original file
@@ -861,9 +861,9 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
         #Update fn_list
         #Note: need to change fn_list to np.array - object array, allows longer strings
         #s.fn_list = s.fn_list[idx]
-        print "Original stack: %i" % len(s_orig.fn_list)
+        print("Original stack: %i" % len(s_orig.fn_list))
         s.fn_list = (np.array(s.fn_list)[idx]).tolist()
-        print "Filtered stack: %i" % len(s.fn_list)
+        print("Filtered stack: %i" % len(s.fn_list))
         #Update date_lists
         s.date_list = s.date_list[idx]
         s.date_list_o = s.date_list_o[idx]
@@ -883,8 +883,8 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
             s.stack_fn = out_stack_fn
         #Check to make sure we are not going to overwrite
         if os.path.abspath(s_orig.stack_fn) == os.path.abspath(s.stack_fn):
-            print "Warning: new stack has identical filename: %s" % s.stack_fn
-            print "As a precaution, new stack will not be saved"
+            print("Warning: new stack has identical filename: %s" % s.stack_fn)
+            print("As a precaution, new stack will not be saved")
             save = False
         s.save = save
         #Update stats
@@ -905,29 +905,29 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
         if save:
             s.savestack()
     else:
-        print "No valid entries for input index array"
+        print("No valid entries for input index array")
         s = None
     return s
 
 #First stack should be "master" - preserve stats, etc
 def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
-    import geolib
+    from . import geolib
     from copy import deepcopy
     #Assumes input stacks have identical extent, resolution, and projection
     if s1.ma_stack.shape[1:3] != s2.ma_stack.shape[1:3]:
-        print s1.ma_stack.shape
-        print s2.ma_stack.shape
+        print(s1.ma_stack.shape)
+        print(s2.ma_stack.shape)
         sys.exit('Input stacks must have identical array dimensions')
     if not geolib.extent_compare(s1.extent, s2.extent):
-        print s1.extent
-        print s2.extent
+        print(s1.extent)
+        print(s2.extent)
         sys.exit('Input stacks must have identical extent')
     if not geolib.res_compare(s1.res, s2.res):
-        print s1.res
-        print s2.res
+        print(s1.res)
+        print(s2.res)
         sys.exit('Input stacks must have identical res')
 
-    print "\nCombining fn_list and ma_stack"
+    print("\nCombining fn_list and ma_stack")
     fn_list = np.array(s1.fn_list + s2.fn_list)
 
     if sort:
@@ -946,7 +946,7 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
     #These are object arrays
     error_dict_list = np.concatenate([s1.error_dict_list, s2.error_dict_list])[sort_idx]
 
-    print "Creating copy for new stack"
+    print("Creating copy for new stack")
     s = deepcopy(s1)
     s.fn_list = list(fn_list)
     s.ma_stack = ma_stack
@@ -984,12 +984,12 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
 #Compute linear regression for every pixel in stack
 def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
     from numpy.linalg import solve
-    import timelib
+    from . import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
     #Only compute where we have n_thresh unmasked values in time
     count = np.ma.masked_equal(ma_stack.count(axis=0), 0).astype(np.uint16)
-    print "Excluding pixels with count < %i" % n_thresh
+    print("Excluding pixels with count < %i" % n_thresh)
     valid_idx = (count.data >= n_thresh)
     #Want to avoid computing trend where dt is small
     #Note, actual minimum depends on magnitude of trend
@@ -1010,7 +1010,7 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_te
     a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
     b = np.dot(X.T, (mask*y))
     #Solve for slope/intercept
-    print "Solving for trend"
+    print("Solving for trend")
     r = np.linalg.solve(a, b.T)
     #Reshape to original dimensions
     #r = r.reshape(origshape[1], origshape[2], 2)
@@ -1137,7 +1137,7 @@ def get_edgemask(a, edge_env=False, convex=False, dilate=False):
     newmask = np.logical_or(colmask, rowmask)
 
     if dilate:
-        print "Dilating edgemask"
+        print("Dilating edgemask")
         import scipy.ndimage as ndimage 
         n = 3
         #Note: this results in unmasked elements near image corners
@@ -1187,7 +1187,7 @@ def masktrim(a):
 #Return a common mask for a set of input ma
 def common_mask(ma_list, apply=False):
     if type(ma_list) is not list:
-        print "Input must be list of masked arrays"
+        print("Input must be list of masked arrays")
         return None
     #Note: a.mask will return single False if all elements are False
     #np.ma.getmaskarray(a) will return full array of False
@@ -1293,14 +1293,14 @@ def edgefind_loop(a):
     #Row
     i=0
     edges = np.zeros(4)
-    print "Top"
+    print("Top")
     while i < a.shape[0]:
         if a[i].count() > 0:
             edges[0] = i
             break
         i += 1
     i = a.shape[0] - 1
-    print "Bottom"
+    print("Bottom")
     while i > edges[0]:
         if a[i].count() > 0:
             edges[1] = i
@@ -1308,20 +1308,20 @@ def edgefind_loop(a):
         i -= 1
     #Col
     j=0
-    print "Left"
+    print("Left")
     while j < a.shape[1]:
         if a[:,j].count() > 0:
             edges[2] = j
             break
         j += 1
     j = a.shape[1] - 1
-    print "Right"
+    print("Right")
     while j > edges[2]:
         if a[:,j].count() > 0:
             edges[3] = j
             break
         j -= 1
-    print edges
+    print(edges)
     #Default
     #minrow, maxrow, mincol, maxcol
     #minx,miny,maxx,maxy
@@ -1488,7 +1488,7 @@ def print_stats(a, full=False):
         p16, p84, spread = robust_spread(ac)
         ac_mode = float(mode(ac, axis=None)[0])
         stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
-    print "count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats
+    print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
     return stats
 
 def rmse(a):
@@ -1510,7 +1510,7 @@ def checkma(a, fix=True):
         #Note: datetime ma returns '?' for fill value
         from datetime import datetime
         if isinstance(a[0], datetime):
-            print "Input array appears to be datetime.  Skipping fix"
+            print("Input array appears to be datetime.  Skipping fix")
         else:
             out=np.ma.fix_invalid(out, copy=False)
     return out
@@ -1649,7 +1649,7 @@ def sliding_window(a, ws, ss=None, flatten=True):
     firstdim = (np.product(newshape[:-meat]),) if ws.shape else ()
     dim = firstdim + (newshape[-meat:])
     # remove any dimensions with size 1
-    dim = filter(lambda i : i != 1,dim)
+    dim = [i for i in dim if i != 1]
     return strided.reshape(dim)
 
 def norm_shape(shape):

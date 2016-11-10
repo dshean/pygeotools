@@ -109,7 +109,7 @@ def cT_helper(x, y, z, in_srs, out_srs):
     orig_shape = x.shape
     cT = osr.CoordinateTransformation(in_srs, out_srs)
     #x2, y2, z2 = zip(*[cT.TransformPoint(*xyz) for xyz in zip(x, y, z)])
-    x2, y2, z2 = zip(*[cT.TransformPoint(*xyz) for xyz in zip(np.ravel(x),np.ravel(y),np.ravel(z))])
+    x2, y2, z2 = list(zip(*[cT.TransformPoint(*xyz) for xyz in zip(np.ravel(x),np.ravel(y),np.ravel(z))]))
     if len(x2) == 1:
         x2, y2, z2 = x2[0], y2[0], z2[0] 
     else:
@@ -152,7 +152,7 @@ def ell2geoid(lon, lat, z=0.0, geoid=egm08_srs):
 def ll2nps(lon, lat, z=0.0):
     #Should throw error here
     if np.any(lat < 0.0):
-        print "Warning: latitude out of range for output projection"
+        print("Warning: latitude out of range for output projection")
     return cT_helper(lon, lat, z, wgs_srs, nps_srs)
 
 def nps2ll(x, y, z=0.0):
@@ -160,7 +160,7 @@ def nps2ll(x, y, z=0.0):
 
 def ll2sps(lon, lat, z=0.0):
     if np.any(lat > 0.0):
-        print "Warning: latitude out of range for output projection"
+        print("Warning: latitude out of range for output projection")
     return cT_helper(lon, lat, z, wgs_srs, sps_srs)
 
 def sps2ll(x, y, z=0.0):
@@ -197,7 +197,9 @@ def sps2local(x, y, z=0, local_srs=None):
         local_srs = localortho(lon, lat)
     return cT_helper(x, y, z, sps_srs, local_srs)
 
-def lldist((lon1, lat1), (lon2, lat2)):
+def lldist(xxx_todo_changeme, xxx_todo_changeme1):
+    (lon1, lat1) = xxx_todo_changeme
+    (lon2, lat2) = xxx_todo_changeme1
     from vincenty import vincenty
     d = vincenty((lat1, lon1), (lat2, lon2))
     return d
@@ -258,7 +260,7 @@ def wraplon(lon):
 
 def lon360to180(lon):
     if np.any(lon > 360.0) or np.anay(lon < 0.0):
-        print "Warning: lon outside expected range"
+        print("Warning: lon outside expected range")
         lon = wraplon(lon)
     #lon[lon > 180.0] -= 360.0
     #lon180 = (lon+180) - np.floor((lon+180)/360)*360 - 180
@@ -267,7 +269,7 @@ def lon360to180(lon):
 
 def lon180to360(lon):
     if np.any(lon > 180.0) or np.anay(lon < -180.0):
-        print "Warning: lon outside expected range"
+        print("Warning: lon outside expected range")
         lon = lon360to180(lon)
     #lon[lon < 0.0] += 360.0
     lon = (lon + 360.0) % 360.0
@@ -534,11 +536,11 @@ def shp_fieldnames(lyr):
 #Get a dictionary for all features in a shapefile
 #Optionally, specify fields
 def shp_dict(shp_fn, fields=None, geom=True):
-    import timelib
+    from . import timelib
     ds = ogr.Open(shp_fn)
     lyr = ds.GetLayer()
     nfeat = lyr.GetFeatureCount()
-    print '%i input features\n' % nfeat
+    print('%i input features\n' % nfeat)
     if fields is None:
         fields = shp_fieldnames(lyr)
     d_list = []
@@ -612,7 +614,7 @@ def shp2geom(shp_fn):
 #Write out a shapefile for input geometry
 #Useful for debugging
 def geom2shp(geom, out_fn, fields=False):
-    import timelib
+    from . import timelib
     driverName = "ESRI Shapefile"
     drv = ogr.GetDriverByName(driverName)
     if os.path.exists(out_fn):
@@ -658,7 +660,7 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
     gt = np.array(ds.GetGeoTransform())
     
     #Want to limit the dimensions of a, as notmasked_edges is slow
-    import iolib
+    from . import iolib
     a = iolib.gdal_getma_sub(ds, scale=scale)
 
     #Create empty geometry
@@ -706,7 +708,7 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
         if convex:
             geom = geom.ConvexHull()
     else:
-        print "No unmasked values found"
+        print("No unmasked values found")
     return geom
 
 #Given an input line geom, generate points at fixed interval
@@ -870,7 +872,7 @@ def ds_IsEmpty(ds):
             else:
                 if (mm[0] == ndv):
                     out = True
-    except StandardError:
+    except Exception:
         out = True 
     #Check for std of nan
     #import math
@@ -1099,9 +1101,9 @@ def clip_raster_by_shp(dem_fn, shp_fn):
     #    with open(dem_fn) as f: pass
     #except IOError as e:
     cmd = 'clip_raster_by_shp.sh '+dem_fn+' '+shp_fn
-    print cmd
+    print(cmd)
     subprocess.call(cmd, shell=True)
-    print
+    print()
     dem_clip_fn = os.path.splitext(dem_fn)[0]+'_shpclip.tif'
     dem_clip_ds = gdal.Open(dem_clip_fn, gdal.GA_ReadOnly)
     return dem_clip_ds
@@ -1116,7 +1118,7 @@ def clip_shp(shp_fn, extent):
     #cmd = ['ogr2ogr', '-f', 'ESRI Shapefile', out_fn, shp_fn, '-clipsrc']
     cmd = ['ogr2ogr', '-f', 'ESRI Shapefile', '-overwrite', '-t_srs', 'EPSG:3031', out_fn, shp_fn, '-clipdst']
     cmd.extend(extent)
-    print cmd
+    print(cmd)
     subprocess.call(cmd, shell=False)
 
 #This will rasterize a geom for a given ma and geotransform
@@ -1164,7 +1166,7 @@ def gdaldem_wrapper(fn, product='hs'):
     try:
         with open(fn) as f: pass
     except IOError as e:
-        print "Unable to open %s" %fn
+        print("Unable to open %s" %fn)
 
     valid_opt = ['hillshade', 'hs', 'slope', 'aspect', 'color-relief', 'TRI', 'TPI', 'roughness']
     bma = None
@@ -1176,13 +1178,13 @@ def gdaldem_wrapper(fn, product='hs'):
         cmd = ['gdaldem', product]
         cmd.extend(opts)
         cmd.extend([fn, out_fn])
-        print ' '.join(cmd)
+        print(' '.join(cmd))
         subprocess.call(cmd, shell=False)
         ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
-        import iolib
+        from . import iolib
         bma = iolib.ds_getma(ds, 1)
     else:
-        print "Invalid gdaldem option specified"
+        print("Invalid gdaldem option specified")
     return bma 
 
 def gdaldem_slope(fn):
@@ -1244,14 +1246,14 @@ def get_geoid_offset(ds, geoid_srs=egm08_srs):
 #warplib writes out correct res/extent, but egm96 is empty
 #Eventually accept geoma
 def wgs84_to_egm96(dem_ds, geoid_dir=None):
-    import warplib
+    from . import warplib
 
     #Check input dem_ds - make sure WGS84
 
     geoid_dir = os.getenv('ASP_DATA')
     if geoid_dir is None:
-        print "No geoid directory available"
-        print "Set ASP_DATA or specify"
+        print("No geoid directory available")
+        print("Set ASP_DATA or specify")
     
     egm96_fn = geoid_dir+'/geoids-1.1/egm96-5.tif' 
     try:
@@ -1267,12 +1269,12 @@ def wgs84_to_egm96(dem_ds, geoid_dir=None):
     #ds_list = warplib.memwarp_multi([dem_ds, egm96_ds], res='first', extent='intersection', t_srs='last') 
     #ds_list = warplib.memwarp_multi([dem_ds, ds_list[1]], res='first', extent='first', t_srs='first')
 
-    print "Extracting ma from dem and egm96 ds"
-    import iolib
+    print("Extracting ma from dem and egm96 ds")
+    from . import iolib
     dem = iolib.ds_getma(ds_list[0])
     egm96 = iolib.ds_getma(ds_list[1])
 
-    print "Removing offset"
+    print("Removing offset")
     dem_egm96 = dem - egm96
    
     return dem_egm96
@@ -1287,7 +1289,7 @@ def dem_geoid(dem_fn):
         cmd_args = ["-o", out_prefix, dem_fn]
         cmd = ['dem_geoid'] + cmd_args
         #cmd = 'dem_geoid -o %s %s' % (out_prefix, dem_fn)
-        print ' '.join(cmd)
+        print(' '.join(cmd))
         subprocess.call(cmd, shell=False)
     adj_ds = gdal.Open(adj_fn, gdal.GA_ReadOnly)
     return adj_ds
@@ -1295,7 +1297,7 @@ def dem_geoid(dem_fn):
     #return iolib.ds_getma(adj_ds, 1)
 
 def dem_geoid_offsetgrid_ds(ds, out_fn=None):
-    import iolib
+    from . import iolib
     a = iolib.ds_getma(ds)
     a[:] = 0.0
     if out_fn is None:
@@ -1304,7 +1306,7 @@ def dem_geoid_offsetgrid_ds(ds, out_fn=None):
     import subprocess
     cmd_args = ["--geoid", "EGM2008", "-o", os.path.splitext(out_fn)[0], out_fn]
     cmd = ['dem_geoid'] + cmd_args
-    print ' '.join(cmd)
+    print(' '.join(cmd))
     subprocess.call(cmd, shell=False)
     os.rename(os.path.splitext(out_fn)[0]+'-adj.tif', out_fn)
     o = iolib.fn_getma(out_fn)
@@ -1319,7 +1321,7 @@ def dem_geoid_offsetgrid(dem_fn):
 #Note: funcitonality with masking needs work
 def map_interp(bma, gt, stride=1, full_array=True):
     import scipy.interpolate
-    import malib
+    from . import malib
     mx, my = get_xy_ma(bma, gt, stride, origmask=True)
     x, y, z = np.array([mx.compressed(), my.compressed(), bma.compressed()])
     #Define the domain for the interpolation
@@ -1414,7 +1416,7 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
         xyz = np.vstack((x.compressed(),y.compressed(),bma.compressed())).T
     #coeff = fitPlaneSVD(xyz)
     coeff = fitPlaneLSQ(xyz)
-    print coeff
+    print(coeff)
     vals = coeff[0]*x + coeff[1]*y + coeff[2]
     resid = bma - vals
     return vals, resid, coeff

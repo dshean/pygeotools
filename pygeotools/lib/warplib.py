@@ -19,8 +19,8 @@ import math
 
 from osgeo import gdal, osr
 
-import geolib
-import iolib
+from . import geolib
+from . import iolib
 
 #Note: can run into filesystem limits for number of open files
 #http://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
@@ -120,7 +120,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     #dst_ns = int(math.ceil((extent[2] - extent[0])/res))
     #dst_nl = int(math.floor((extent[3] - extent[1])/res))
     #dst_ns = int(math.floor((extent[2] - extent[0])/res))
-    print 'nl: %i ns: %i res: %0.3f' % (dst_nl, dst_ns, res)
+    print('nl: %i ns: %i res: %0.3f' % (dst_nl, dst_ns, res))
     #Create output dataset
     src_b = src_ds.GetRasterBand(1)
     src_dt = src_b.DataType
@@ -147,11 +147,11 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             #Need this to actually make src_ndv stick for dst_ds
             b.Fill(src_ndv)
         if gauss:
-            import filtlib
+            from . import filtlib
             #src_a = src_b.GetVirtualMemArray()
             #Compute resampling ratio to determine filter window size
             res_ratio = float(res)/src_res
-            print "Resampling factor: %0.3f" % res_ratio
+            print("Resampling factor: %0.3f" % res_ratio)
             #Might be more efficient to do iterative gauss filter with size 3, rather than larger windows
             f_size = math.floor(res_ratio/2.)*2+1
             #This is conservative to avoid filling holes with noise
@@ -159,7 +159,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             if f_size <= 1:
                 continue
 
-            print "Smoothing window size: %i" % f_size
+            print("Smoothing window size: %i" % f_size)
             #Create temp dataset to store filtered array - avoid overwriting original
             temp_ds = driver.Create('', src_ns, src_nl, src_ds.RasterCount, src_dt) 
             temp_ds.SetProjection(src_srs.ExportToWkt())
@@ -263,13 +263,13 @@ def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first'
     else:
         extent = [float(i) for i in extent.split(' ')]
 
-    print
-    print "Warping all inputs to the following:"
-    print "Resolution: %s" % res
-    print "Extent: %s" % str(extent)
-    print "Projection: '%s'" % t_srs.ExportToProj4()
-    print "Resampling alg: %s" % r  
-    print
+    print()
+    print("Warping all inputs to the following:")
+    print("Resolution: %s" % res)
+    print("Extent: %s" % str(extent))
+    print("Projection: '%s'" % t_srs.ExportToProj4())
+    print("Resampling alg: %s" % r)  
+    print()
 
     out_ds_list = []
     for i, ds in enumerate(src_ds_list):
@@ -277,7 +277,7 @@ def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first'
         fn = '[memory]'
         if fn_list is not None:
             fn = fn_list[0]
-        print "%i of %i: %s" % (i+1, len(src_ds_list), fn)
+        print("%i of %i: %s" % (i+1, len(src_ds_list), fn))
         #Check each ds to see if warp is necessary
         ds_res = geolib.get_res(ds, square=True)[0]
         #Note: this rounds to %0.5f, extent_compare uses %0.6f
@@ -318,7 +318,7 @@ def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='fir
     return memwarp_multi(src_ds_list, res, extent, t_srs, r)
 
 def writeout(ds, outfn):
-    print "Writing out %s" % outfn 
+    print("Writing out %s" % outfn) 
     #Use outfn extension to get driver
     #This may have issues if outfn already exists and the mem ds has different dimensions/res
     out_ds = gtif_drv.CreateCopy(outfn, ds, 0, options=gdal_opt)

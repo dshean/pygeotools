@@ -5,4 +5,4 @@
 #For example:
 #from pygeotools import malib
 
-from lib import *
+from .lib import *

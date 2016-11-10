@@ -5,8 +5,8 @@
 import os
 import argparse
 
-from lib import iolib
-from lib import malib
+from .lib import iolib
+from .lib import malib
 
 #Hack to work around file open limit
 import resource
@@ -37,4 +37,4 @@ args = parser.parse_args()
 #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types
 s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, res=args.tr, extent=args.te, srs=args.t_srs, trend=args.trend, med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
 
-print s.stack_fn
+print(s.stack_fn)
