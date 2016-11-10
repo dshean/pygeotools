@@ -43,17 +43,17 @@ iolib.writeGTiff(rdiff, out_fn, ds_list[0])
 ```
 or, from the command line: 
 
-Reproject all to match raster2.tif, clip to common intersection, resample all to largest pixel size 
+Warp all to match raster1.tif projection with common intersection and largest pixel size 
 
 `warptool.py -tr max -te intersection -t_srs first raster1.tif raster2.tif raster3.tif`
 
-Create version of raster1.tif that matches attributes of raster2.tif
+Create version of raster1.tif that matches resolution, extent and projection of raster2.tif
 
 `warptool.py -tr raster2.tif -te raster2.tif -t_srs raster2.tif raster1.tif`
 
-Reproject raster1.tif and clip to user-defined extent, preserving original resolution
+Reproject and clip to user-defined extent, preserving original resolution of each input raster
 
-`warptool.py -tr source -te '439090 5285360 458630 5306450' -t_srs EPSG:32610 raster1.tif`
+`warptool.py -tr source -te '439090 5285360 458630 5306450' -t_srs EPSG:32610 raster1.tif raster2.tif`
 
 ### Creating a time series "stack" object:
 ```
