@@ -99,7 +99,7 @@ The -e flag ("editable mode", setuptools "develop mode") will allow you to modif
 
 ## Disclaimer 
 
-This originated as a poorly-written, poorly-organized personal repo that I am finally cleaning up and distributing.  There are some useful things that work very well, other things that were hastily written for a one-off task several years ago, and some confusing things that were never finished.  I have no tests.  The minor changes needed for migration to this repo have undoubtedly broken some things. 
+This originated as a poorly written, poorly organized personal repo that I am finally cleaning up and distributing.  There are some useful things that work very well, other things that were hastily written for a one-off task several years ago, and some confusing things that were never finished.  I have no tests.  The minor changes needed for migration to this repo have undoubtedly broken some things. 
 
 Contributions, bug reports, and general feedback are all welcome.  My time is limited, I have bad habits, and I could really use some help.  Thanks in advance.
 
