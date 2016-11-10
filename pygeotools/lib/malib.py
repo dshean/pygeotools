@@ -1492,8 +1492,8 @@ def print_stats(a, full=False):
     return stats
 
 def rmse(a):
-    checkma(a).compressed()
-    rmse = np.sqrt(np.sum(a**2)/a.size)
+    ac = checkma(a).compressed()
+    rmse = np.sqrt(np.sum(ac**2)/ac.size)
     return rmse
 
 #Check that input is a masked array
