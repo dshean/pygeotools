@@ -11,7 +11,8 @@ import glob
 
 import numpy as np
 from osgeo import gdal
-from .iolib import np_gdal_dtype
+
+from . import iolib
 
 #Notes on geoma
 #Note: Need better init overloading
@@ -169,7 +170,7 @@ class DEMStack:
     def get_ds(self):
         nl = self.ma_stack.shape[1]
         ns = self.ma_stack.shape[2]
-        gdal_dtype = np_gdal_dtype(np.dtype(self.dtype))
+        gdal_dtype = iolib.np_gdal_dtype(np.dtype(self.dtype))
         m_ds = gdal.GetDriverByName('MEM').Create('', ns, nl, 1, gdal_dtype)
         m_gt = [self.extent[0], self.res, 0, self.extent[3], 0, -self.res]
         m_ds.SetGeoTransform(m_gt)
@@ -208,7 +209,6 @@ class DEMStack:
 
     def makestack(self):
         from . import warplib
-        from . import iolib
         print("Creating stack of %i files" % len(self.fn_list))
         #Jako front 
         #res = 16
@@ -294,7 +294,6 @@ class DEMStack:
         #Then create grids by pulling out corresponding value from date_list_o
 
     def write_datestack(self):
-        from . import iolib
         #stat_list = ['dt_stack_ptp', 'dt_stack_mean', 'dt_stack_min', 'dt_stack_max', 'dt_stack_center']
         stat_list = ['dt_stack_ptp', 'dt_stack_min', 'dt_stack_max', 'dt_stack_center']
         if any([not hasattr(self, i) for i in stat_list]):
@@ -545,7 +544,6 @@ class DEMStack:
         #self.stack_rsquared.set_fill_value(-9999) 
 
     def write_stats(self):
-        from . import iolib
         #if not hasattr(self, 'stack_count'):
         stat_list = ['stack_count', 'stack_mean', 'stack_std', 'stack_min', 'stack_max']
         if self.med:
@@ -569,7 +567,6 @@ class DEMStack:
             iolib.writeGTiff(self.stack_med, out_prefix+'_med.tif', ds)
 
     def write_trend(self):
-        from . import iolib
         #stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std', 'stack_rsquared']
         stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std']
         if any([not hasattr(self, i) for i in stat_list]):
@@ -721,7 +718,6 @@ class DEMStack:
             print("Generate shaded relief from mean")
             self.stack_mean_hs = geolib.gdaldem_wrapper(in_fn, 'hs')
         else:
-            from . import iolib
             self.stack_mean_hs = iolib.fn_getma(hs_fn)
 
 def stack_smooth(s_orig, size=7, save=False):
