@@ -17,9 +17,7 @@ Libraries and utilities for geospatial data processing/analysis
 - timelib - time conversions, useful for raster time series analysis
 - filtlib - raster filtering 
 
-### pygeotools/bin
-
-Useful command-line utilities
+### pygeotools - executable command-line utilities (run with no arguments for usage)
 - warptool.py
 - make_stack.py
 - ndvtrim.py
@@ -41,17 +39,17 @@ malib.print_stats(rdiff)
 out_fn = 'raster_diff.tif'
 iolib.writeGTiff(rdiff, out_fn, ds_list[0])
 ```
-or, from the command line: 
+or, from the command line... 
 
-Warp all to match raster1.tif projection with common intersection and largest pixel size 
+Warp all to match raster1.tif projection with common intersection and largest pixel size:
 
 `warptool.py -tr max -te intersection -t_srs first raster1.tif raster2.tif raster3.tif`
 
-Create version of raster1.tif that matches resolution, extent and projection of raster2.tif
+Create version of raster1.tif that matches resolution, extent, and projection of raster2.tif:
 
 `warptool.py -tr raster2.tif -te raster2.tif -t_srs raster2.tif raster1.tif`
 
-Reproject and clip to user-defined extent, preserving original resolution of each input raster
+Reproject and clip to user-defined extent, preserving original resolution of each input raster:
 
 `warptool.py -tr source -te '439090 5285360 458630 5306450' -t_srs EPSG:32610 raster1.tif raster2.tif`
 
@@ -65,7 +63,7 @@ s.stack_std
 #Stack linear trend
 s.stack_trend
 ```
-or, from the command line: 
+or, from the command line...
 
 `make_stack.py -tr 'min' -te 'union' 20*.tif`
 
@@ -79,14 +77,16 @@ Install the latest release from PyPI:
 
     pip install pygeotools 
 
-**Note**: by default, this will place some executable scripts to /usr/local/bin
+**Note**: by default, this will deploy executable scripts in /usr/local/bin
 
 ### Building from source
 
 Clone the repository and install:
 
     git clone https://github.com/dshean/pygeotools.git
-    pip install pygeotools/
+    pip install -e pygeotools/
+
+The -e flag ("editable mode", setuptools "develop mode") will allow you to modify source code and immediately see changes.
 
 ### Core requirements 
 - [GDAL/OGR](http://www.gdal.org/)
@@ -99,9 +99,11 @@ Clone the repository and install:
 
 ## Disclaimer 
 
-This originated as a poorly-written, poorly-organized personal repo that I am finally cleaning up and distributing.  There are some things that work very well, and other things that were hastily written for a one-off task several years ago.  
+This originated as a poorly-written, poorly-organized personal repo that I am finally cleaning up and distributing.  There are some useful things that work very well, other things that were hastily written for a one-off task several years ago, and some confusing things that were never finished.  I have no tests.  The minor changes needed for migration to this repo have undoubtedly broken some things. 
 
-This was all originally developed for Python 2.X, but should now work with Python 3.X thanks to [@dlilien](https://github.com/dlilien)
+Contributions, bug reports, and general feedback are all welcome.  My time is limited, I have bad habits, and I could really use some help.  Thanks in advance.
+
+This was all originally developed for Python 2.X, but should now also work with Python 3.X thanks to [@dlilien](https://github.com/dlilien)
 
 ## License
 
