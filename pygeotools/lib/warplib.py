@@ -29,13 +29,9 @@ gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-mem_drv = gdal.GetDriverByName('MEM')
-gtif_drv = gdal.GetDriverByName("GTiff")
-gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
-
 #Use this to warp to file - no need to write to memory then write to file 
 #gdal is much better about memory management
-#def diskwarp(src_ds, dst_fn=None, res=None, extent=None, t_srs=None, r='cubic', driver=gtif_drv):
+#def diskwarp(src_ds, dst_fn=None, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.gtif_drv):
 #    if dst_fn is None:
 #        dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0]+'_warp.tif'
 #    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn)
@@ -44,10 +40,10 @@ gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 #    return dst_ds
 
 #Preserve these input options
-def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, driver=mem_drv):
+def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, driver=iolib.mem_drv):
     return warp(src_ds, res, extent, t_srs, r, driver)
 
-def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None):
+def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.mem_drv, dst_fn=None):
     src_srs = geolib.get_ds_srs(src_ds)
     
     if t_srs is None:
@@ -182,7 +178,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), gra, 0.0, 0.0, prog_func)
 
     #Return GDAL dataset object in memory
-    if driver != mem_drv:
+    if driver != iolib.mem_drv:
         dst_ds.FlushCache()
     return dst_ds
 
@@ -316,5 +312,5 @@ def writeout(ds, outfn):
     print("Writing out %s" % outfn) 
     #Use outfn extension to get driver
     #This may have issues if outfn already exists and the mem ds has different dimensions/res
-    out_ds = gtif_drv.CreateCopy(outfn, ds, 0, options=gdal_opt)
+    out_ds = iolib.gtif_drv.CreateCopy(outfn, ds, 0, options=iolib.gdal_opt)
     out_ds = None

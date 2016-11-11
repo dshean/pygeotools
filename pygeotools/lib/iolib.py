@@ -8,6 +8,8 @@ from osgeo import gdal, gdal_array, osr
 #Functions for IO, mostly wrapped around GDAL
 #Written before RasterIO existed, which should probably be used instead of these 
 
+mem_drv = gdal.GetDriverByName('MEM')
+gtif_drv = gdal.GetDriverByName('GTiff')
 gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 #gdal_opt += ['BLOCKXSIZE=1024', 'BLOCKYSIZE=1024']
 
@@ -75,13 +77,14 @@ def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
 def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, create=False, sparse=False):
     #If input is not np.ma, this creates a new ma, which has default filL_value of 1E20
     #Must manually override with ndv
+    #Also consumes a lot of memory
+    #Should bypass if input is bool
     from pygeotools.lib.malib import checkma 
     a = checkma(a, fix=False)
     #Want to preserve fill_value if already specified
     if ndv is not None:
         a.set_fill_value(ndv)
-    format = "GTiff"
-    driver = gdal.GetDriverByName(format)
+    driver = gtif_drv
     #Currently only support writing singleband rasters
     #if a.ndim > 2:
     #   np_nbands = a.shape[2]
@@ -94,8 +97,8 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
         src_gt = src_ds.GetGeoTransform()
         #This is WKT
         src_proj = src_ds.GetProjection()
-        src_srs = osr.SpatialReference()  
-        src_srs.ImportFromWkt(src_ds.GetProjectionRef())
+        #src_srs = osr.SpatialReference()  
+        #src_srs.ImportFromWkt(src_ds.GetProjectionRef())
 
     #Probably a cleaner way to handle this
     if gt is None:
