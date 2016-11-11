@@ -9,9 +9,6 @@
 
 #Potentially an issue with shp containing many features - dissolve should work
 
-#Adapted from:
-#http://linfiniti.com/2009/09/clipping-rasters-with-gdal-using-polygons/
-
 gdal_opt='-co TILED=YES -co COMPRESS=LZW -co BIGTIFF=IF_SAFER'
 
 if [ "$#" -ne 2 ] && [ "$#" -ne 3 ] ; then
@@ -19,7 +16,7 @@ if [ "$#" -ne 2 ] && [ "$#" -ne 3 ] ; then
     exit 1 
 fi
 
-#Specify resampling algorithm to use
+#Specify resampling algorithm to use, cubic is a good default
 rs_alg=cubic
 #rs_alg=near
 #rs_alg=mode
@@ -52,14 +49,14 @@ if [ "$r_proj" != "$s_proj" ] ; then
     cleanup=true
 fi
 
-#!!!
 #Need to compute common extent here
-#!!!
+
 s_extent=($(ogrinfo -so -al $s_fn | grep Extent | sed 's/Extent: //g' | sed 's/(//g' | sed 's/)//g' | sed 's/ - /, /g'))
 r_extent=($(gdalinfo $r_fn | egrep 'Upper Left|Lower Right' | awk -F'[(,)]' '{print $2 " " $3}'))
 r_extent=(${r_extent[0]} ${r_extent[3]} ${r_extent[2]} ${r_extent[1]})
 
 #Use this to specify desired extent, default preserves input raster extent
+#Should accept switch as command line arg
 extent=${r_extent[@]}
 #extent=${s_extent[@]}
 
