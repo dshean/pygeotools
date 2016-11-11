@@ -608,6 +608,7 @@ def geom2shp(geom, out_fn, fields=False):
         field_defn.SetWidth(128)
         out_lyr.CreateField(field_defn)
         #field_defn = ogr.FieldDefn("date", ogr.OFTString)
+        #This allows sorting by date
         field_defn = ogr.FieldDefn("date", ogr.OFTInteger)
         field_defn.SetWidth(32)
         out_lyr.CreateField(field_defn)
@@ -615,11 +616,13 @@ def geom2shp(geom, out_fn, fields=False):
     out_feat.SetGeometry(geom)
     if fields:
         out_feat_name = os.path.splitext(out_fn)[0]
-        #out_feat_date = str(timelib.fn_getdatetime(out_fn))
-        #out_feat_date = int(timelib.fn_getdatetime(out_fn).strftime('%Y%m%d%H%M'))
-        out_feat_date = int(timelib.fn_getdatetime(out_fn).strftime('%Y%m%d'))
         out_feat.SetField("name", out_feat_name)
-        out_feat.SetField("date", out_feat_date)
+        #Try to extract a date from input raster fn
+        out_feat_date = timelib.fn_getdatetime(out_fn)
+        if out_feat_date is not None:
+            out_feat_date = int(out_feat_date.strftime('%Y%m%d'))
+            #out_feat_date = int(out_feat_date.strftime('%Y%m%d%H%M'))
+            out_feat.SetField("date", out_feat_date)
     out_lyr.CreateFeature(out_feat)
     out_ds = None
     #return status?
