@@ -36,10 +36,10 @@ def main():
     out_gt = tuple(out_gt)
 
     #debug
-    #print [0, bma.shape[0], 0, bma.shape[1]]
-    #print edge_env
-    #print src_gt
-    #print out_gt
+    #print([0, bma.shape[0], 0, bma.shape[1]])
+    #print(edge_env)
+    #print(src_gt)
+    #print(out_gt)
 
     out_fn = os.path.splitext(src_fn)[0]+'_trim.tif'
     print("Writing out: %s" % out_fn)
