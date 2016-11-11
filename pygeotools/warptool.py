@@ -36,13 +36,11 @@ def main():
     #extent = [-197712.13, -2288712.83, -169650.72, -2253490.42] 
     #res = 2.0
 
-    print()
-    print("Input parameters")
+    print("\nInput parameters")
     print("Resolution: %s" % str(args.tr))
     print("Extent: %s" % str(args.te))
     print("Projection: %s" % str(args.t_srs))
-    print("Resampling alg: %s" % str(args.r))
-    print()
+    print("Resampling alg: %s\n" % str(args.r))
     
     ds_list = warplib.memwarp_multi_fn(args.src_fn_list, res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r)
 

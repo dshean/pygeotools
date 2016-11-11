@@ -261,13 +261,11 @@ def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first'
     else:
         extent = [float(i) for i in extent.split(' ')]
 
-    print()
-    print("Warping all inputs to the following:")
+    print("\nWarping all inputs to the following:")
     print("Resolution: %s" % res)
     print("Extent: %s" % str(extent))
     print("Projection: '%s'" % t_srs.ExportToProj4())
-    print("Resampling alg: %s" % r)  
-    print()
+    print("Resampling alg: %s\n" % r)  
 
     out_ds_list = []
     for i, ds in enumerate(src_ds_list):

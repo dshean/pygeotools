@@ -811,16 +811,13 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
     #Note: no need to copy again
     s_sub = get_stack_subset(s, idx, out_stack_fn=out_stack_fn, copy=False, save=False) 
 
-    print()
     print("Orig filename:", s_orig.stack_fn)
     print("Orig extent:", s_orig.extent)
     print("Orig dimensions:", s_orig.ma_stack.shape)
-    print()
     print("Input extent:", extent)
     print("New filename:", s_sub.stack_fn)
     print("New extent:", s_sub.extent)
     print("New dimensions:", s_sub.ma_stack.shape)
-    print()
     
     if save:
         if os.path.abspath(s_orig.stack_fn) == os.path.abspath(s_sub.stack_fn):

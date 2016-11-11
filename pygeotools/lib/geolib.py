@@ -1078,10 +1078,9 @@ def clip_raster_by_shp(dem_fn, shp_fn):
     #try:
     #    with open(dem_fn) as f: pass
     #except IOError as e:
-    cmd = 'clip_raster_by_shp.sh '+dem_fn+' '+shp_fn
+    cmd = ['clip_raster_by_shp.sh', dem_fn, shp_fn]
     print(cmd)
-    subprocess.call(cmd, shell=True)
-    print()
+    subprocess.call(cmd, shell=False)
     dem_clip_fn = os.path.splitext(dem_fn)[0]+'_shpclip.tif'
     dem_clip_ds = gdal.Open(dem_clip_fn, gdal.GA_ReadOnly)
     return dem_clip_ds
