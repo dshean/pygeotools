@@ -8,8 +8,11 @@ from osgeo import gdal, gdal_array, osr
 #Functions for IO, mostly wrapped around GDAL
 #Written before RasterIO existed, which should probably be used instead of these 
 
+#Define drivers
 mem_drv = gdal.GetDriverByName('MEM')
 gtif_drv = gdal.GetDriverByName('GTiff')
+vrt_drv = gdal.GetDriverByName("VRT")
+
 gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 #gdal_opt += ['BLOCKXSIZE=1024', 'BLOCKYSIZE=1024']
 
