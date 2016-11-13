@@ -18,6 +18,7 @@ spy = 86400.*365.25
 #Get timezone for a given lat/lon
 #lon,lat = geolib.get_center(ds, t_srs=geolib.wgs_srs)
 def getTimeZone(lat, lon):
+    #Need to fix for Python 2.x and 3.X support
     import urllib.request, urllib.error, urllib.parse
     import xml.etree.ElementTree as ET
     #http://api.askgeo.com/v1/918/aa8292ec06199d1207ccc15be3180213c984832707f0cbf3d3859db279b4b324/query.xml?points=37.78%2C-122.42%3B40.71%2C-74.01&databases=Point%2CTimeZone%2CAstronomy%2CNaturalEarthCountry%2CUsState2010%2CUsCounty2010%2CUsCountySubdivision2010%2CUsTract2010%2CUsBlockGroup2010%2CUsPlace2010%2CUsZcta2010
@@ -116,6 +117,37 @@ def fn_getdatetime_list(fn):
     #This is USGS archive format
     #out = [datetime.strptime(s, '%d%b%y') for s in dstr][0]
     return out
+
+#Determine time difference between inputs
+
+def get_t_factor(t1, t2):
+    t_factor = None
+    if t1 is not None and t2 is not None and t1 != t2:  
+        dt = t2 - t1
+        year = timedelta(days=365.25)
+        t_factor = abs(dt.total_seconds() / year.total_seconds()) 
+    return t_factor
+
+def get_t_factor_fn(fn1, fn2, ds=None):
+    t_factor = None
+    #Extract timestamps from input filenames
+    t1 = fn_getdatetime(fn1)
+    t2 = fn_getdatetime(fn2)
+    t_factor = get_t_factor(t1,t2)
+    #Attempt to load timestamp arrays (for mosaics with variable timestamps)
+    t1_fn = os.path.splitext(fn1)[0]+'_ts.tif'
+    t2_fn = os.path.splitext(fn2)[0]+'_ts.tif'
+    if os.path.exists(t1_fn) and os.path.exists(t2_fn) and ds is not None:
+        print("Preparing timestamp arrays")
+        from pygeotools.lib import warplib
+        t1_ds, t2_ds = warplib.memwarp_multi_fn([t1_fn, t2_fn], extent=ds, res=ds)
+        print("Loading timestamps into masked arrays")
+        from pygeotools.lib import iolib
+        t1 = iolib.ds_getma(t1_ds)
+        t2 = iolib.ds_getma(t2_ds)
+        #This is a new masked array
+        t_factor = (t2 - t1) / 365.25
+    return t_factor
 
 def sort_fn_list(fn_list):
     dt_list = get_dt_list(fn_list)
