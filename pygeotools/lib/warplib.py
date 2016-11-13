@@ -29,8 +29,10 @@ gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
+#TODO: clean this up
 #Use this to warp to file - no need to write to memory then write to file 
 #gdal is much better about memory management
+#Called by vmap.py
 #def diskwarp(src_ds, dst_fn=None, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.gtif_drv):
 #    if dst_fn is None:
 #        dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0]+'_warp.tif'
