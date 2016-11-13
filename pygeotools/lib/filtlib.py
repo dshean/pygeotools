@@ -13,8 +13,6 @@ import os
 import shutil
 
 import numpy as np
-import scipy
-import scipy.ndimage
 
 from pygeotools.lib import iolib
 from pygeotools.lib import malib
@@ -139,7 +137,8 @@ def slope_fltr(dem_fn, slopelim=(0.1, 40)):
 def gauss_fltr(dem, sigma=1):
     print("Applying gaussian smoothing filter with sigma %s" % sigma)
     #Note, ndimage doesn't properly handle ma - convert to nan
-    dem_filt_gauss = scipy.ndimage.filters.gaussian_filter(dem.filled(np.nan), sigma)
+    from scipy.ndimage.filters import gaussian_filter
+    dem_filt_gauss = gaussian_filter(dem.filled(np.nan), sigma)
     #Now mask all nans
     #dem = np.ma.array(dem_filt_gauss, mask=dem.mask)
     out = np.ma.fix_invalid(dem_filt_gauss, copy=False, fill_value=dem.fill_value)
@@ -234,7 +233,6 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
     dem2[offset[0]:dem.shape[0]+offset[0],offset[1]:dem.shape[1]+offset[1]] = dem.data 
     dem2 = np.ma.masked_equal(dem2, dem.fill_value)
     #dem2 = dem
-    from scipy.ndimage import zoom
     for n in range(levels):
         print(dem2.shape)
         dim = (np.floor(np.array(dem2.shape)/2.0 + 1)*2).astype(int)
@@ -247,6 +245,7 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
         dem2 = dem2[::2,::2]
     if full:
         print("Resizing to original input dimensions")
+        from scipy.ndimage import zoom
         for n in range(levels):
             print(dem2.shape)
             #Note: order 1 is bilinear
@@ -300,7 +299,8 @@ def bandpass(dem, size1=None, size2=None):
 def median_fltr(dem, fsize=7, origmask=False):
     print("Applying median filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
-    dem_filt_med = scipy.ndimage.filters.median_filter(dem.filled(np.nan), fsize)
+    from scipy.ndimage.filters import median_filter
+    dem_filt_med = median_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
     out = np.ma.fix_invalid(dem_filt_med, copy=False, fill_value=dem.fill_value)
     if origmask:
@@ -386,7 +386,8 @@ def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
 def uniform_fltr(dem, fsize=7):
     print("Applying uniform filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
-    dem_filt_med = scipy.ndimage.filters.uniform_filter(dem.filled(np.nan), fsize)
+    from scipy.ndimage.filters import unifiform_filter
+    dem_filt_med = uniform_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
     out = np.ma.fix_invalid(dem_filt_med, copy=False, fill_value=dem.fill_value)
     out.set_fill_value(dem.fill_value)
