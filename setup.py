@@ -14,7 +14,7 @@ setup(name='pygeotools',
     url='https://github.com/dshean/pygeotools',
     packages=['pygeotools', 'pygeotools.lib'],
     long_description=open('README.md').read(),
-    install_requires=['numpy','gdal','matplotlib'],
+    install_requires=['gdal','numpy','scipy','matplotlib'],
     #Note: this will write to /usr/local/bin
     scripts=['pygeotools/warptool.py', 'pygeotools/ndvtrim.py', 'pygeotools/apply_mask.py', 'pygeotools/make_stack.py']
 )

@@ -91,10 +91,10 @@ The -e flag ("editable mode", setuptools "develop mode") will allow you to modif
 ### Core requirements 
 - [GDAL/OGR](http://www.gdal.org/)
 - [NumPy](http://www.numpy.org/)
+- [SciPy](https://www.scipy.org/)
 
 ### Optional requirements (needed for some functionality) 
 - [matplotlib](http://matplotlib.org/)
-- [SciPy](https://www.scipy.org/)
 - [NASA Ames Stereo Pipeline (ASP)](https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/)
 
 ## Disclaimer 
