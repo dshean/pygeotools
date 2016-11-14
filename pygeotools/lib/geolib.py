@@ -479,6 +479,7 @@ def copyproj(src_fn, dst_fn, gt=True):
         src_gt = np.array(src_ds.GetGeoTransform())
         src_dim = np.array([src_ds.RasterXSize, src_ds.RasterYSize])
         dst_dim = np.array([dst_ds.RasterXSize, dst_ds.RasterYSize])
+        #This preserves dst_fn resolution
         if np.any(src_dim != dst_dim):
             res_factor = src_dim/dst_dim.astype(float)
             src_gt[[1, 5]] *= max(res_factor)

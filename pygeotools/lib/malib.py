@@ -1476,7 +1476,7 @@ def print_stats(a, full=False):
         stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), fast_median(a), mad(a), q[0], q[1], q[2], a_mode, p16, p84, spread) 
     else:
         ac = a.compressed()
-        stride = np.around(ac.size / thresh)
+        stride = int(np.around(ac.size / thresh))
         ac = np.ma.array(ac[::stride])
         #idx = np.random.permutation(ac.size)
         #Note: need the ma cast here b/c of a.count() below
