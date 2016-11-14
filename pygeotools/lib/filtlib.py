@@ -191,10 +191,10 @@ def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior
         size = int(np.ceil((sigma * (2*truncate) + 1)/2)*2 - 1)
     size = max(size, 3)
     kernel = astropy.convolution.Gaussian2DKernel(sigma, x_size=size, y_size=size, mode='oversample')
-    print("Applying gaussian smoothing filter with size %s and sigma %s" % (size, sigma))
-    print('Kernel shape: ', kernel.shape)
-    print('Kernel sigma: ', sigma)
-    print('Kernel sum: ', kernel.array.sum())
+
+    print("Applying gaussian smoothing filter with size %i and sigma %0.3f (sum %0.3f)" % \
+            (size, sigma, kernel.array.sum()))
+
     #This will fill holes
     #np.nan is float
     #dem_filt_gauss = astropy.nddata.convolve(dem.astype(float).filled(np.nan), kernel, boundary='fill', fill_value=np.nan)
