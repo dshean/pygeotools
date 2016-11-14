@@ -48,7 +48,7 @@ def main():
 
     #Use the direct write to disk functionality in diskwarp
     ds_list = warplib.diskwarp_multi_fn(args.src_fn_list, \
-            res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r, outdir=outdir)
+            res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r, outdir=args.outdir)
 
 if __name__ == "__main__":
     main()

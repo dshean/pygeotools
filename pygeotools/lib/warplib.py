@@ -163,23 +163,31 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.mem_
     #result = gdal.ReprojectImage(src_ds, dst_ds, gra)
     gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), gra, 0.0, 0.0, prog_func)
 
+    #Note: this is now done in diskwarp
+    #Write out to disk
+    #if driver != iolib.mem_drv:
+    #    dst_ds.FlushCache()
+
     #Return GDAL dataset object in memory
-    if driver != iolib.mem_drv:
-        dst_ds.FlushCache()
     return dst_ds
 
 #Use this to warp to mem ds
-def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, driver=iolib.mem_drv, oudir=None):
+def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None):
+    driver = iolib.mem_drv
     return warp(src_ds, res, extent, t_srs, r, driver)
 
 #Use this to warp directly to output file - no need to write to memory then CreateCopy 
-def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.gtif_drv, outdir=None, dst_fn=None):
+def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None):
     if dst_fn is None:
         dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0]+'_warp.tif'
     if outdir is not None:
-        dst_fn = os.path.join(outdir, os.path.basename(dst_fn)) 
+        dst_fn = os.path.join(outdir, os.path.basename(dst_fn))  
+    driver = iolib.gtif_drv
     dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn)
+    #Write out
     dst_ds = None
+    #Now reopen ds from disk
+    dst_ds = gdal.Open(dst_fn)
     return dst_ds
 
 def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None):
