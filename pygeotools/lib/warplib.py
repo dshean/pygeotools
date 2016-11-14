@@ -21,6 +21,9 @@ from osgeo import gdal, osr
 from pygeotools.lib import geolib
 from pygeotools.lib import iolib
 
+mem_drv = iolib.mem_drv
+gtif_drv = iolib.gtif_drv
+
 #Note: can run into filesystem limits for number of open files
 #http://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
 gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
@@ -29,7 +32,7 @@ gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.mem_drv, dst_fn=None):
+def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None):
     src_srs = geolib.get_ds_srs(src_ds)
     
     if t_srs is None:
@@ -165,7 +168,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=iolib.mem_
 
     #Note: this is now done in diskwarp
     #Write out to disk
-    #if driver != iolib.mem_drv:
+    #if driver != mem_drv:
     #    dst_ds.FlushCache()
 
     #Return GDAL dataset object in memory
@@ -305,7 +308,6 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         else:
             dst_ds = warptype(ds, res, extent, t_srs, r, outdir)
             out_ds_list.append(dst_ds)
-            dst_ds = None
     return out_ds_list
 
 def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic'):
@@ -328,7 +330,7 @@ def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='fi
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
     return diskwarp_multi(src_ds_list, res, extent, t_srs, r, outdir=outdir)
 
-#Depreciated function - use diskwarp functions instead 
+#Depreciated function - use diskwarp functions when writing to disk, avoids unnecessary CreateCopy
 def writeout(ds, outfn):
     print("Writing out %s" % outfn) 
     #Use outfn extension to get driver
