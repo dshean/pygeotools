@@ -264,3 +264,14 @@ def image_check(fn):
 def cpu_count():
     from multiprocessing import cpu_count
     return cpu_count()
+
+#This is a shared directory for files like LULC, used by multiple tools 
+#Default location is $HOME/data
+#Can specify in ~/.bashrc or ~/.profile
+#export DATADIR=$HOME/data
+def get_datadir():
+    default_datadir = os.path.join(os.path.expanduser('~'), 'data')
+    datadir = os.environ.get('DATADIR', default_datadir)
+    if not os.path.exists(datadir):
+        os.makedirs(datadir)
+    return datadir
