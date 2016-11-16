@@ -332,7 +332,7 @@ def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='fir
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
     return memwarp_multi(src_ds_list, res, extent, t_srs, r)
 
-def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None):
+def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None, dst_ndv=None):
     return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=diskwarp, outdir=outdir, dst_ndv=dst_ndv)
 
 def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None, dst_ndv=None):
