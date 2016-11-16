@@ -32,7 +32,7 @@ gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None):
+def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None):
     src_srs = geolib.get_ds_srs(src_ds)
     
     if t_srs is None:
@@ -128,8 +128,16 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         if src_ndv is not None:
             b = dst_ds.GetRasterBand(n)
             b.SetNoDataValue(src_ndv)
-            #Need this to actually make src_ndv stick for dst_ds
-            b.Fill(src_ndv)
+            if dst_ndv is None:
+                #Need this to actually make src_ndv stick for dst_ds
+                b.Fill(src_ndv)
+            else:
+                b.Fill(dst_ndv)
+        elif dst_ndv is not None:
+            b = dst_ds.GetRasterBand(n)
+            b.SetNoDataValue(dst_ndv)
+            b.Fill(dst_ndv)
+
         if gauss:
             from pygeotools.lib import filtlib
             #src_a = src_b.GetVirtualMemArray()
@@ -150,7 +158,11 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             temp_ds.SetGeoTransform(src_gt)
             temp_b = temp_ds.GetRasterBand(n)
             temp_b.SetNoDataValue(src_ndv)
-            temp_b.Fill(src_ndv)
+            if dst_ndv is None:
+                temp_b.Fill(src_ndv)
+            else:
+                temp_b.Fill(dst_ndv)
+
 
             src_a = iolib.b_getma(src_b)
             src_a = filtlib.gauss_fltr_astropy(src_a, size=f_size)
@@ -175,25 +187,25 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     return dst_ds
 
 #Use this to warp to mem ds
-def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None):
+def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None, dst_ndv=None):
     driver = iolib.mem_drv
-    return warp(src_ds, res, extent, t_srs, r, driver)
+    return warp(src_ds, res, extent, t_srs, r, driver, dst_ndv=dst_ndv)
 
 #Use this to warp directly to output file - no need to write to memory then CreateCopy 
-def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None):
+def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None, dst_ndv=None):
     if dst_fn is None:
         dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0]+'_warp.tif'
     if outdir is not None:
         dst_fn = os.path.join(outdir, os.path.basename(dst_fn))  
     driver = iolib.gtif_drv
-    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn)
+    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn, dst_ndv=dst_ndv)
     #Write out
     dst_ds = None
     #Now reopen ds from disk
     dst_ds = gdal.Open(dst_fn)
     return dst_ds
 
-def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None):
+def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None, dst_ndv=None):
     #Type cast arguments as str for evaluation
     #Avoid path errors
     #res = str(res)
@@ -306,7 +318,7 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         if rescheck and extentcheck and srscheck:
             out_ds_list.append(ds)
         else:
-            dst_ds = warptype(ds, res, extent, t_srs, r, outdir)
+            dst_ds = warptype(ds, res, extent, t_srs, r, outdir, dst_ndv=dst_ndv)
             out_ds_list.append(dst_ds)
     return out_ds_list
 
@@ -321,14 +333,14 @@ def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='fir
     return memwarp_multi(src_ds_list, res, extent, t_srs, r)
 
 def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None):
-    return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=diskwarp, outdir=outdir)
+    return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=diskwarp, outdir=outdir, dst_ndv=dst_ndv)
 
-def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None):
+def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None, dst_ndv=None):
     #Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
-    return diskwarp_multi(src_ds_list, res, extent, t_srs, r, outdir=outdir)
+    return diskwarp_multi(src_ds_list, res, extent, t_srs, r, outdir=outdir, dst_ndv=dst_ndv)
 
 #Depreciated function - use diskwarp functions when writing to disk, avoids unnecessary CreateCopy
 def writeout(ds, outfn):

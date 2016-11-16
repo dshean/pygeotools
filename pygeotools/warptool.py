@@ -20,6 +20,7 @@ def main():
     
     parser = argparse.ArgumentParser(description='Utility to warp stacks of rasters to the same res/extent/proj')
     parser.add_argument('-tr', default='first', help='Output resolution (default: %(default)s)')
+    parser.add_argument('-dst_ndv', type=float, default=None, help='No data value for output')
     parser.add_argument('-te', default='intersection', help='Output extent (default: %(default)s)')
     parser.add_argument('-t_srs', default='first', help='Output projection (default: %(default)s)')
     parser.add_argument('-r', type=str, default='cubic', help='Resampling algorithm (default: %(default)s)', choices=r_choices)
@@ -48,7 +49,7 @@ def main():
 
     #Use the direct write to disk functionality in diskwarp
     ds_list = warplib.diskwarp_multi_fn(args.src_fn_list, \
-            res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r, outdir=args.outdir)
+            res=args.tr, extent=args.te, t_srs=args.t_srs, r=args.r, outdir=args.outdir, dst_ndv=args.dst_ndv)
 
 if __name__ == "__main__":
     main()
