@@ -123,20 +123,13 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     gauss = False 
 
     for n in range(1, src_ds.RasterCount+1):
-        src_b = src_ds.GetRasterBand(n)
-        src_ndv = iolib.get_ndv_b(src_b)
-        if src_ndv is not None:
-            b = dst_ds.GetRasterBand(n)
-            b.SetNoDataValue(src_ndv)
-            if dst_ndv is None:
-                #Need this to actually make src_ndv stick for dst_ds
-                b.Fill(src_ndv)
-            else:
-                b.Fill(dst_ndv)
-        elif dst_ndv is not None:
-            b = dst_ds.GetRasterBand(n)
-            b.SetNoDataValue(dst_ndv)
-            b.Fill(dst_ndv)
+        if dst_ndv is None:
+            src_b = src_ds.GetRasterBand(n)
+            src_ndv = iolib.get_ndv_b(src_b)
+            dst_ndv = src_ndv
+        b = dst_ds.GetRasterBand(n)
+        b.SetNoDataValue(dst_ndv)
+        b.Fill(dst_ndv)
 
         if gauss:
             from pygeotools.lib import filtlib
@@ -157,12 +150,8 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             temp_ds.SetProjection(src_srs.ExportToWkt())
             temp_ds.SetGeoTransform(src_gt)
             temp_b = temp_ds.GetRasterBand(n)
-            temp_b.SetNoDataValue(src_ndv)
-            if dst_ndv is None:
-                temp_b.Fill(src_ndv)
-            else:
-                temp_b.Fill(dst_ndv)
-
+            temp_b.SetNoDataValue(dst_ndv)
+            temp_b.Fill(dst_ndv)
 
             src_a = iolib.b_getma(src_b)
             src_a = filtlib.gauss_fltr_astropy(src_a, size=f_size)
