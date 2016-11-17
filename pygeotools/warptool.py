@@ -20,9 +20,9 @@ def main():
     
     parser = argparse.ArgumentParser(description='Utility to warp stacks of rasters to the same res/extent/proj')
     parser.add_argument('-tr', default='first', help='Output resolution (default: %(default)s)')
-    parser.add_argument('-dst_ndv', type=float, default=None, help='No data value for output')
     parser.add_argument('-te', default='intersection', help='Output extent (default: %(default)s)')
     parser.add_argument('-t_srs', default='first', help='Output projection (default: %(default)s)')
+    parser.add_argument('-dst_ndv', type=float, default=None, help='No data value for output')
     parser.add_argument('-r', type=str, default='cubic', help='Resampling algorithm (default: %(default)s)', choices=r_choices)
     parser.add_argument('-outdir', default=None, help='Specify output directory')
     parser.add_argument('src_fn_list', nargs='+', help='Input filenames (img1.tif img2.tif ...)')
