@@ -96,6 +96,11 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
     nbands = 1
     np_dt = a.dtype.name
     if src_ds is not None:
+        #If this is a fn, get a ds
+        #Note: this saves a lot of unnecessary iolib.fn_getds calls
+        if isinstance(src_ds, str):
+            src_ds = fn_getds(src_ds)
+        #if isinstance(src_ds, gdal.Dataset):
         src_dt = gdal.GetDataTypeName(src_ds.GetRasterBand(bnum).DataType)
         src_gt = src_ds.GetGeoTransform()
         #This is WKT
