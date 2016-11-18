@@ -541,28 +541,100 @@ def shp_dict(shp_fn, fields=None, geom=True):
     #d_list_sort = sorted(d_list, key=lambda k: k[date_f])
     return d_list
 
+def lyr_proj(lyr, t_srs, preserve_fields=True):
+    #Need to check t_srs
+    s_srs = lyr.GetSpatialRef()
+    cT = osr.CoordinateTransformation(s_srs, t_srs)
+
+    #Do everything in memory
+    drv = ogr.GetDriverByName('Memory')
+
+    #Might want to save clipped, warped shp to disk?
+    # create the output layer
+    #drv = ogr.GetDriverByName('ESRI Shapefile')
+    #out_fn = '/tmp/temp.shp'
+    #if os.path.exists(out_fn):
+    #    driver.DeleteDataSource(out_fn)
+    #out_ds = driver.CreateDataSource(out_fn)
+    
+    out_ds = drv.CreateDataSource('out')
+    outlyr = out_ds.CreateLayer('out', srs=t_srs, geom_type=lyr.GetGeomType())
+
+    if preserve_fields:
+        # add fields
+        inLayerDefn = lyr.GetLayerDefn()
+        for i in range(0, inLayerDefn.GetFieldCount()):
+            fieldDefn = inLayerDefn.GetFieldDefn(i)
+            outlyr.CreateField(fieldDefn)
+        # get the output layer's feature definition
+    outLayerDefn = outlyr.GetLayerDefn()
+
+    # loop through the input features
+    inFeature = lyr.GetNextFeature()
+    while inFeature:
+        # get the input geometry
+        geom = inFeature.GetGeometryRef()
+        # reproject the geometry
+        geom.Transform(cT)
+        # create a new feature
+        outFeature = ogr.Feature(outLayerDefn)
+        # set the geometry and attribute
+        outFeature.SetGeometry(geom)
+        if preserve_fields:
+            for i in range(0, outLayerDefn.GetFieldCount()):
+                outFeature.SetField(outLayerDefn.GetFieldDefn(i).GetNameRef(), inFeature.GetField(i))
+        # add the feature to the shapefile
+        outlyr.CreateFeature(outFeature)
+        # destroy the features and get the next input feature
+        inFeature = lyr.GetNextFeature()
+    #NOTE: have to operate on ds here rather than lyr, otherwise segfault
+    return out_ds
+
 #See https://pcjericks.github.io/py-gdalogr-cookbook/vector_layers.html#convert-vector-layer-to-array
 #Should check srs, as shp could be WGS84
-def shp2array(shp_fn, r_ds=None, res=None, extent=None):
+def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
+    shp_extent = lyr.GetExtent()
+    shp_srs = lyr.GetSpatialRef()
     # dst_dt = gdal.GDT_Byte
     ndv = 0
     if r_ds is not None:
-        extent = ds_extent(r_ds)
+        r_extent = ds_extent(r_ds)
         res = get_res(r_ds, square=True)[0] 
+        extent = r_extent
+        r_srs = get_ds_srs(r_ds)
+        r_geom = ds_geom(r_ds)
         # dst_ns = r_ds.RasterXSize
         # dst_nl = r_ds.RasterYSize
+        #Convert raster extent to shp_srs
+        cT = osr.CoordinateTransformation(r_srs, shp_srs)
+        r_geom_reproj = geom_dup(r_geom)
+        r_geom_reproj.Transform(cT)
+        r_geom_reproj.AssignSpatialReference(t_srs)
+        lyr.SetSpatialFilter(r_geom_reproj)
+        #lyr.SetSpatialFilter(ogr.CreateGeometryFromWkt(wkt))
     else:
+        #TODO: clean this up
         if res is None:
             sys.exit("Must specify input res")
         if extent is None:
-            extent = lyr.GetExtent()
-    m_ds = mem_ds(res, extent, srs=None, dtype=gdal.GDT_Byte)
+            print("Using input shp extent")
+            extent = shp_extent
+    if t_srs is None:
+        t_srs = r_srs
+    if not shp_srs.IsSame(t_srs):
+        print("Input shp srs: %s" % shp_srs.ExportToProj4())
+        print("Specified output srs: %s" % t_srs.ExportToProj4())
+        out_ds = lyr_proj(lyr, t_srs)
+        outlyr = out_ds.GetLayer()
+    else:
+        outlyr = lyr
+    #outlyr.SetSpatialFilter(r_geom)
+    m_ds = mem_ds(res, extent, srs=t_srs, dtype=gdal.GDT_Byte)
     b = m_ds.GetRasterBand(1)
     b.SetNoDataValue(ndv)
-    #b.Fill(ndv)
-    gdal.RasterizeLayer(m_ds, [1], lyr, burn_values=[1])
+    gdal.RasterizeLayer(m_ds, [1], outlyr, burn_values=[1])
     a = b.ReadAsArray()
     a = ~(a.astype('Bool'))
     return a
