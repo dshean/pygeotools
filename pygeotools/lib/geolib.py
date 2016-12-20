@@ -92,6 +92,12 @@ aea_navd88_srs=osr.SpatialReference()
 aea_navd88_proj='+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs +towgs84=0,0,0,0,0,0,0 +geoidgrids=g2012a_conus.gtx,g2012a_alaska.gtx,g2012a_guam.gtx,g2012a_hawaii.gtx,g2012a_puertorico.gtx,g2012a_samoa.gtx +vunits=m +no_defs'
 aea_navd88_srs.ImportFromProj4(aea_navd88_proj)
 
+#HMA projection
+hma_aea_srs = osr.SpatialReference()
+#hma_aea_proj = '+proj=aea +lat_1=25 +lat_2=47 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
+hma_aea_proj = '+proj=aea +lat_1=25 +lat_2=47 +lat_0=36 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
+hma_aea_srs.ImportFromProj4(hma_aea_proj)
+
 #To do for transformations below:
 #Check input order of lon, lat
 #Need to broadcast z=0.0 if z is not specified
@@ -180,6 +186,15 @@ def localortho(lon, lat):
     local_proj = '+proj=ortho +lat_0=%0.7f +lon_0=%0.7f +datum=WGS84 +units=m +no_defs ' % (lat, lon)
     local_srs.ImportFromProj4(local_proj)
     return local_srs
+
+#Transform geometry to local orthographic projection, useful for width/height and area calc
+def geom2localortho(geom):
+    cx, cy = geom.Centroid().GetPoint_2D()
+    lon, lat, z = cT_helper(cx, cy, 0, geom.GetSpatialReference(), wgs_srs)
+    local_srs = localortho(lon,lat)
+    local_geom = geom_dup(geom)
+    geom_transform(local_geom, local_srs)
+    return local_geom 
 
 def ll2local(lon, lat, z=0, local_srs=None):
     if local_srs is None: 
@@ -1293,6 +1308,10 @@ def get_geoid_offset(ds, geoid_srs=egm08_srs):
     ds_srs = get_ds_srs(ds)
     c = get_center(ds)
     x, y, z = cT_helper(c[0], c[1], 0.0, ds_srs, geoid_srs)
+    return z
+
+def get_geoid_offset_ll(lon, lat, geoid_srs=egm08_srs):
+    x, y, z = cT_helper(lon, lat, 0.0, wgs_srs, geoid_srs)
     return z
 
 #Note: the existing egm96-5 dataset has problematic extent
