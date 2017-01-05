@@ -57,7 +57,7 @@ def main():
     args = parser.parse_args()
 
     r_fn = args.r_fn
-    if not os.path.exists(args.r_fn):
+    if not os.path.exists(r_fn):
         sys.exit("Unable to find r_fn: %s" % r_fn)
         
     shp_fn = args.shp_fn
