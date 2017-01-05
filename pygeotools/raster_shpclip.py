@@ -61,7 +61,8 @@ def main():
         sys.exit("Unable to find r_fn: %s" % r_fn)
         
     shp_fn = args.shp_fn
-    #Convenience shortcut to clip to glacier polygons
+    #Convenience shortcut to clip to glacier polygons (global shp)
+    #Requires demcoreg package: https://github.com/dshean/demcoreg
     if shp_fn == 'RGI' or shp_fn == 'rgi':
         from demcoreg.dem_mask import get_glacier_poly
         rgi_fn = get_glacier_poly() 
