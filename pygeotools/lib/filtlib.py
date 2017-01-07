@@ -323,6 +323,13 @@ def median_fltr_opencv(dem, size=3, iterations=1):
         n += 1
     return out
 
+def circular_mask(size):
+    r = size/2
+    c = (r,r)
+    y,x = np.ogrid[-c[0]:size-c[0], -c[1]:size-c[1]]
+    mask = ~(x*x + y*y <= r*r)
+    return mask
+
 #This correctly handles nan, and is efficient for smaller arrays
 def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
     dem = malib.checkma(dem)
@@ -330,11 +337,8 @@ def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
     #Force a step size of 1
     t = malib.sliding_window_padded(dem.filled(np.nan), (size, size), (1, 1))
     if circular:
-        r = size/2
-        c = (r,r)
-        y,x = np.ogrid[-c[0]:size-c[0], -c[1]:size-c[1]]
-        mask = x*x + y*y <= r*r
-        t[:,~mask] = np.nan
+        mask = circular_mask(size)
+        t[:,mask] = np.nan
     t = t.reshape(newshp)
     out = f(t, axis=1).reshape(dem.shape)
     out = np.ma.fix_invalid(out)
