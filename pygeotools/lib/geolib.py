@@ -101,7 +101,7 @@ hma_aea_srs.ImportFromProj4(hma_aea_proj)
 #To do for transformations below:
 #Check input order of lon, lat
 #Need to broadcast z=0.0 if z is not specified
-#Check that all inputs have same length
+#Check that all inputs have same nonzero length
 
 def cT_helper(x, y, z, in_srs, out_srs):
     x, y, z = np.atleast_1d(x), np.atleast_1d(y), np.atleast_1d(z)
@@ -273,7 +273,7 @@ def wraplon(lon):
     return lon
 
 def lon360to180(lon):
-    if np.any(lon > 360.0) or np.anay(lon < 0.0):
+    if np.any(lon > 360.0) or np.any(lon < 0.0):
         print("Warning: lon outside expected range")
         lon = wraplon(lon)
     #lon[lon > 180.0] -= 360.0
@@ -282,7 +282,7 @@ def lon360to180(lon):
     return lon
 
 def lon180to360(lon):
-    if np.any(lon > 180.0) or np.anay(lon < -180.0):
+    if np.any(lon > 180.0) or np.any(lon < -180.0):
         print("Warning: lon outside expected range")
         lon = lon360to180(lon)
     #lon[lon < 0.0] += 360.0
