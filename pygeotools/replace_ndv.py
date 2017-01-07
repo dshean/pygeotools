@@ -15,7 +15,7 @@ from pygeotools.lib import iolib
 #image_calc -o ${1%.*}_ndv.tif -c 'var_0' --output-nodata-value $2 $1
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         sys.exit("Usage: %s raster.tif ndv\nWhere ndv is new nodata value (e.g., -9999)" % os.path.basename(sys.argv[0]))
 
     fn = sys.argv[1]
