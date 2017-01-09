@@ -38,6 +38,7 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     elif extent == 'shp':
         out_extent = shp_extent
 
+    print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
     #r = iolib.ds_getma(r_ds)
     r_ds = warplib.memwarp(r_ds, extent=out_extent, t_srs=out_srs, r='cubic')
     r = iolib.ds_getma(r_ds)
