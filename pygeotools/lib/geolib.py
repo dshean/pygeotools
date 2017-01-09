@@ -217,29 +217,29 @@ def lldist(pt1, pt2):
     d = vincenty((lat1, lon1), (lat2, lon2))
     return d
 
+"""
+From Ben Smith email on 7/12/12: PS scale m file
+
+This function calculates the scaling factor for a polar stereographic
+projection (ie. SSM/I grid) to correct area calculations. The scaling
+factor is defined (from Snyder, 1982, Map Projections used by the U.S.
+Geological Survey) as:
+
+k = (mc/m)*(t/tc), where:
+
+m = cos(lat)/sqrt(1 - e2*sin(lat)^2)
+t = tan(Pi/4 - lat/2)/((1 - e*sin(lat))/(1 + e*sin(lat)))^(e/2)
+e2 = 0.006693883 is the earth eccentricity (Hughes ellipsoid)
+e = sqrt(e2)
+mc = m at the reference latitude (70 degrees)
+tc = t at the reference latitude (70 degrees)
+
+The ratio mc/tc is precalculated and stored in the variable m70_t70.
+
+"""
 #Scaling factor for area calculations in polar stereographic
 #Should multiply the returned value by computed ps area to obtain true area
 def scale_ps(lat):
-    """
-    From Ben Smith email on 7/12/12: PS scale m file
-    
-    This function calculates the scaling factor for a polar stereographic
-    projection (ie. SSM/I grid) to correct area calculations. The scaling
-    factor is defined (from Snyder, 1982, Map Projections used by the U.S.
-    Geological Survey) as:
-
-    k = (mc/m)*(t/tc), where:
-
-    m = cos(lat)/sqrt(1 - e2*sin(lat)^2)
-    t = tan(Pi/4 - lat/2)/((1 - e*sin(lat))/(1 + e*sin(lat)))^(e/2)
-    e2 = 0.006693883 is the earth eccentricity (Hughes ellipsoid)
-    e = sqrt(e2)
-    mc = m at the reference latitude (70 degrees)
-    tc = t at the reference latitude (70 degrees)
-
-    The ratio mc/tc is precalculated and stored in the variable m70_t70.
-
-    """
     lat = np.array(lat)
     if np.any(lat > 0):
         m70_t70 = 1.9332279 
