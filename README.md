@@ -1,11 +1,11 @@
 # pygeotools
-Libraries and utilities for geospatial data processing/analysis
+Libraries and command line tools for geospatial data processing/analysis
 
 ## Overview
 
 ## Features
 - quickly resample rasters to common resolution/extent/projection
-- various functions for NumPy masked arrays
+- functions using NumPy masked arrays to handle NoData
 - simple coordinate transformations
 - automatic projection determination
 
@@ -13,14 +13,15 @@ Libraries and utilities for geospatial data processing/analysis
 - geolib - coordinate transformations, raster to vector, vector to raster
 - malib - NumPy Masked Array operations, DEMStack class
 - warplib - on-the-fly GDAL warp operations
-- iolib - file input/output, primarily wrappers for GDAL I/O, write out masked arrays
+- iolib - file input/output, wrappers for GDAL I/O, masked array write to disk
 - timelib - time conversions, useful for raster time series analysis
 - filtlib - raster filtering 
 
 ### pygeotools - executable command-line utilities (run with no arguments for usage)
 - warptool.py
 - make_stack.py
-- ndvtrim.py
+- clip_raster_by_shp.py
+- trim_ndv.py
 - apply_mask.py
 - ...
 
@@ -69,7 +70,7 @@ or, from the command line...
 
 ## Documentation
 
-Is in the works...
+http://pygeotools.readthedocs.io
 
 ## Installation
 
