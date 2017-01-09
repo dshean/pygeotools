@@ -28,7 +28,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return MagicMock()
 
-MOCK_MODULES = ['osgeo', 'gdal', 'argparse', 'numpy', 'scipy', 'matplotlib']
+MOCK_MODULES = ['osgeo', 'gdal', 'numpy', 'scipy', 'matplotlib']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
