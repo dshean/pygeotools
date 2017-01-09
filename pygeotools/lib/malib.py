@@ -36,7 +36,7 @@ from pygeotools.lib import iolib
 #Want to add error attributes
 #Want to make consistent with stack_count vs count keywords/attributes
 class DEMStack:
-    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=False, med=False, stats=True, save=True, sort=True, datestack=True):
+    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, med=False, stats=True, save=True, sort=True, datestack=True):
         self.sort = sort
         if self.sort:
             #This sorts filenames, should probably sort by datetime to be safe
@@ -1517,7 +1517,7 @@ def checkma(a, fix=True):
 #Should probably move this to imview.py
 def iv(b, **kwargs):
     import matplotlib.pyplot as plt
-    import imview 
+    import imview.imviewer as imview 
     b = checkma(b)
     #if hasattr(kwargs,'imshow_kwargs'):
     #    kwargs['imshow_kwargs']['interpolation'] = 'bicubic'
