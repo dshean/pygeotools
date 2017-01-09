@@ -1,12 +1,15 @@
 #! /usr/bin/env python
 
+#David Shean
+#dshean@gmail.com
+
+#Functions for IO, mostly wrapped around GDAL
+#Written before RasterIO existed, which should probably be used instead of these 
+
 import os
 
 import numpy as np
 from osgeo import gdal, gdal_array, osr
-
-#Functions for IO, mostly wrapped around GDAL
-#Written before RasterIO existed, which should probably be used instead of these 
 
 #Define drivers
 mem_drv = gdal.GetDriverByName('MEM')
@@ -261,7 +264,7 @@ def image_check(fn):
     ds = gdal.Open(fn)
     status = True 
     for i in range(ds.RasterCount):
-        ds.GetRasterBand(i).Checksum()
+        ds.GetRasterBand(i+1).Checksum()
         if gdal.GetLastErrorType() != 0:
             status = False 
     return status
