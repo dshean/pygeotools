@@ -85,7 +85,7 @@ Install the latest release from PyPI:
 Clone the repository and install:
 
     git clone https://github.com/dshean/pygeotools.git
-    pip install -e pygeotools/
+    pip install -e pygeotools
 
 The -e flag ("editable mode", setuptools "develop mode") will allow you to modify source code and immediately see changes.
 
