@@ -5,6 +5,7 @@
 
 import sys
 import os
+import argparse
 
 import numpy as np
 from osgeo import gdal
@@ -14,12 +15,18 @@ from pygeotools.lib import iolib
 #Can use ASP image_calc for multithreaded ndv replacement of huge images
 #image_calc -o ${1%.*}_ndv.tif -c 'var_0' --output-nodata-value $2 $1
 
-def main():
-    if len(sys.argv) != 3:
-        sys.exit("Usage: %s raster.tif ndv\nWhere ndv is new nodata value (e.g., -9999)" % os.path.basename(sys.argv[0]))
+def getparser():
+    parser = argparse.ArgumentParser(description="Replace raster NoData value")
+    parser.add_argument('src_fn', type=str, help='Input raster filename')
+    parser.add_argument('new_ndv', type=str, help='New NoData value (e.g., -9999)')
+    return parser
 
-    fn = sys.argv[1]
-    new_ndv = sys.argv[2]
+def main():
+    parser = getparser()
+    args = parser.parse_args()
+
+    src_fn = args.src_fn
+    new_ndv = args.new_ndv
 
     #Input argument is a string, which is not recognized by set_fill_value
     #Must use np.nan object
@@ -29,14 +36,14 @@ def main():
         new_ndv = float(new_ndv)
 
     #Output filename will have ndv appended
-    out_fn = os.path.splitext(fn)[0]+'_ndv.tif'
+    out_fn = os.path.splitext(src_fn)[0]+'_ndv.tif'
 
-    ds = gdal.Open(fn)
+    ds = gdal.Open(src_fn)
     b = ds.GetRasterBand(1)
     #Extract old ndv
     old_ndv = iolib.get_ndv_b(b)
 
-    print(fn)
+    print(src_fn)
     print("Replacing old ndv %s with new ndv %s" % (old_ndv, new_ndv))
 
     #Load masked array

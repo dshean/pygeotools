@@ -16,7 +16,7 @@ from pygeotools.lib import iolib
 from pygeotools.lib import malib
 from pygeotools.lib import filtlib
 
-def main(argv=None):
+def main():
     #This is defualt filter size (pixels) 
     size = 19
     #Compute and print stats before/after

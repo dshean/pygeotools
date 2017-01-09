@@ -12,19 +12,24 @@
 
 import sys
 import os
+import argparse
 
 from osgeo import gdal
 
 from pygeotools.lib import geolib
 
+def getparser():
+    parser = argparse.ArgumentParser(description="Create shp from input rasters and merge into one shp")
+    parser.add_argument('-merge_fn', type=str, default='merge.shp', help='Output merge shp filename')
+    parser.add_argument('fn_list', type=str, nargs='+', help='Input raster filename(s)')
+    return parser
+
 def main():
-    if len(sys.argv) < 2:
-        sys.exit("Usage: %s raster1.tif [raster2.tif raster3.tif ...]" % os.path.basename(sys.argv[0]))
+    parser = getparser()
+    args = parser.parse_args()
 
-    fn_list = sys.argv[1:]
-
-    #Output filename
-    merge_fn = 'merge.shp'
+    fn_list = args.fn_list
+    merge_fn = args.merge_fn
 
     #Note: ogr_merge.sh goes from first to last input shp
     #Reverse order here to preserve original order, with first input on top

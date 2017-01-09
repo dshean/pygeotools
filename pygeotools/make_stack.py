@@ -10,7 +10,7 @@ from pygeotools.lib import malib
 import resource
 resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-def main():
+def getparser():
     parser = argparse.ArgumentParser(description='Utility to warp stacks of rasters to the same res/extent/proj')
     parser.add_argument('-tr', default='max', help='Output resolution (default: %(default)s)')
     parser.add_argument('-te', default='union', help='Output extent (default: %(default)s)')
@@ -31,6 +31,10 @@ def main():
     parser.add_argument('--no-sort', dest='sort', action='store_false')
     parser.add_argument('src_fn_list', nargs='+', help='Input filenames (img1.tif img2.tif ...)')
     parser.set_defaults(trend=True, med=False, stats=True, save=True, datestack=True, sort=True)
+    return parser
+
+def main():
+    parser = getparser()
     args = parser.parse_args()
 
     #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types

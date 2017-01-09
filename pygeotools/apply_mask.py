@@ -16,13 +16,17 @@ import numpy as np
 from pygeotools.lib import iolib
 from pygeotools.lib import warplib
 
-def main():
+def getparser():
     parser = argparse.ArgumentParser(description="Apply existing mask to input raster")
     #Should add support for similar arguments as in warplib - arbitrary extent, res, etc
     parser.add_argument('-extent', type=str, default='raster', choices=['raster','mask','intersection','union'], \
                         help='Desired output extent')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('mask_fn', type=str, help='Input mask filename (can be existing raster with ndv, or binary mask)')
+    return parser
+
+def main():
+    parser = getparser()
     args = parser.parse_args()
 
     src_fn = args.src_fn

@@ -47,13 +47,17 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     r = np.ma.array(r, mask=mask)
     return r
 
-def main():
+def getparser():
     parser = argparse.ArgumentParser(description="Clip input raster by input shp polygons")
     #Should add support for similar arguments as in warplib - arbitrary extent, res, etc
     parser.add_argument('-extent', type=str, default='raster', choices=['raster','shp'], \
                         help='Desired output extent')
     parser.add_argument('r_fn', type=str, help='Input raster filename')
     parser.add_argument('shp_fn', type=str, help='Input shp filename')
+    return parser
+
+def main():
+    parser = getparser()
     args = parser.parse_args()
 
     r_fn = args.r_fn

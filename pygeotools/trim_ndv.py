@@ -7,15 +7,24 @@
 
 import sys
 import os
+import argparse
 
 from pygeotools.lib import iolib
 from pygeotools.lib import malib
 
-def main():
-    if len(sys.argv) != 2:
-        sys.exit('Usage: %s raster.tif' % os.path.basename(sys.argv[0]))
+def getparser():
+    parser = argparse.ArgumentParser(description="Remove NoData row/col from raster margins")
+    parser.add_argument('src_fn', type=str, help='Input raster filename')
+    return parser
 
-    src_fn = sys.argv[1]
+def main():
+    parser = getparser()
+    args = parser.parse_args()
+
+    src_fn = args.src_fn
+    if not iolib.fn_check(src_fn):
+        sys.exit("Unable to find src_fn: %s" % src_fn)
+
     #This is a wrapper around gdal.Open()
     src_ds = iolib.fn_getds(src_fn)
     src_gt = src_ds.GetGeoTransform()

@@ -11,7 +11,7 @@ import argparse
 from pygeotools.lib import warplib
 from pygeotools.lib import geolib
 
-def main():
+def getparser():
     #Can't specify arbitrary fn, res when limiting choices
     tr_choices = ['first', 'last', 'min', 'max', 'mean', 'med', 'source', '"fn"', '"res"']
     te_choices = ['first', 'last', 'intersection', 'union', 'source', '"fn"', '"extent"']
@@ -26,7 +26,10 @@ def main():
     parser.add_argument('-r', type=str, default='cubic', help='Resampling algorithm (default: %(default)s)', choices=r_choices)
     parser.add_argument('-outdir', default=None, help='Specify output directory')
     parser.add_argument('src_fn_list', nargs='+', help='Input filenames (img1.tif img2.tif ...)')
+    return parser
 
+def main():
+    parser = getparser()
     args = parser.parse_args()
 
     #Can also provide filename for any of the tr, te, t_srs options
