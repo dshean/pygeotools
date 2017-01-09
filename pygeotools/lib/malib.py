@@ -1,9 +1,10 @@
 #! /usr/bin/env python
+"""
+Functions involving masked arrays
 
-#David Shean
-#dshean@gmail.com
+Some functions are general, others involve geospatial information
 
-#Library containing various functions for masked arrays
+"""
 
 import sys
 import os

@@ -1,10 +1,9 @@
 #! /usr/bin/env python
-
 """
-David Shean
-dshean@gmail.com
-
-To do:
+Raster warping
+"""
+"""
+todo:
 Much better type checking
 Implement multiprocessing!
 Proper vdatum tags in geotiff header

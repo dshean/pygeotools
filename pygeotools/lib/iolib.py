@@ -1,10 +1,9 @@
 #! /usr/bin/env python
+"""
+Functions for IO, mostly wrapped around GDAL
 
-#David Shean
-#dshean@gmail.com
-
-#Functions for IO, mostly wrapped around GDAL
-#Written before RasterIO existed, which should probably be used instead of these 
+Note: This was all written before RasterIO existed, which might be a better choice. 
+"""
 
 import os
 
@@ -17,6 +16,9 @@ gtif_drv = gdal.GetDriverByName('GTiff')
 vrt_drv = gdal.GetDriverByName("VRT")
 
 gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
+"""Default GDAL creation options
+
+"""
 #gdal_opt += ['BLOCKXSIZE=1024', 'BLOCKYSIZE=1024']
 
 #Add methods to load ma from OpenCV, PIL, etc.
@@ -25,8 +27,59 @@ gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 #Note: want to modify to import all bands as separate arrays in ndarray
 #Unless the user requests a single band, or range of bands
 
+#Check for file existence
+def fn_check(fn):
+    """Wrapper to check for file existence
+    
+    Parameters
+    ----------
+    fn : str
+        Input filename string.
+    
+    Returns
+    -------
+    bool
+        True if file exists, False otherwise.
+    """
+    return os.path.exists(fn)
+
+def fn_check_full(fn):
+    """Check for file existence
+
+    Avoids race condition, but slower than os.path.exists.
+    
+    Parameters
+    ----------
+    fn : str
+        Input filename string.
+    
+    Returns
+    -------
+    status 
+        True if file exists, False otherwise.
+    """
+    status = True 
+    if not os.path.isfile(fn): 
+        status = False
+    else:
+        try: 
+            open(fn) 
+        except IOError:
+            status = False
+    return status
+
+def fn_list_check(fn_list):
+    status = True
+    for fn in fn_list:
+        if not fn_check(fn):
+            print('Unable to find: %s' % fn)
+            status = False
+    return status
+
 #Wrapper around gdal.Open
 def fn_getds(fn):
+    """Wrapper around gdal.Open()
+    """
     ds = None
     if fn_check(fn):
         ds = gdal.Open(fn, gdal.GA_ReadOnly)
@@ -34,26 +87,84 @@ def fn_getds(fn):
         print("Unable to find %s" % fn)
     return ds
 
-#Given input filename, return a masked array for specified band
 def fn_getma(fn, bnum=1):
+    """Get masked array from input filename
+
+    Parameters
+    ----------
+    fn : str
+        Input filename string
+    bnum : int, optional
+        Band number
+    
+    Returns
+    -------
+    np.ma.array    
+        Masked array containing raster values
+    """
     #Add check for filename existence
     ds = fn_getds(fn)
     return ds_getma(ds, bnum=bnum)
 
 #Given input dataset, return a masked array for the input band
 def ds_getma(ds, bnum=1):
+    """Get masked array from input GDAL Dataset
+
+    Parameters
+    ----------
+    ds : gdal.Dataset 
+        Input GDAL Datset
+    bnum : int, optional
+        Band number
+    
+    Returns
+    -------
+    np.ma.array    
+        Masked array containing raster values
+    """
     b = ds.GetRasterBand(bnum)
     return b_getma(b)
 
 #Given input band, return a masked array
 def b_getma(b):
+    """Get masked array from input GDAL Band
+
+    Parameters
+    ----------
+    b : gdal.Band 
+        Input GDAL Band 
+    
+    Returns
+    -------
+    np.ma.array    
+        Masked array containing raster values
+    """
     b_ndv = get_ndv_b(b)
     bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
     return bma
 
-def get_sub_dim(src_ds, scale=None, maxdim=1024.):
+def get_sub_dim(src_ds, scale=None, maxdim=1024):
+    """Compute dimensions of subsampled dataset 
+
+    Parameters
+    ----------
+    ds : gdal.Dataset 
+        Input GDAL Datset
+    scale : int, optional
+        Scaling factor
+    maxdim : int, optional 
+        Maximum dimension along either axis, in pixels
+    
+    Returns
+    -------
+    ns
+        Numper of samples in subsampled output
+    nl
+        Numper of lines in subsampled output
+    """
     ns = src_ds.RasterXSize
     nl = src_ds.RasterYSize
+    maxdim = float(maxdim)
     if scale is None:
         scale_ns = ns/maxdim
         scale_nl = nl/maxdim
@@ -68,6 +179,28 @@ def get_sub_dim(src_ds, scale=None, maxdim=1024.):
 #Can specify scale factor or max dimension
 #No need to load the entire dataset for stats computation
 def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):    
+    """Load a subsampled array, rather than full resolution
+
+    This is useful when working with large rasters
+
+    Uses buf_xsize and buf_ysize options from GDAL ReadAsArray method.
+
+    Parameters
+    ----------
+    ds : gdal.Dataset 
+        Input GDAL Datset
+    bnum : int, optional
+        Band number
+    scale : int, optional
+        Scaling factor
+    maxdim : int, optional 
+        Maximum dimension along either axis, in pixels
+    
+    Returns
+    -------
+    np.ma.array    
+        Masked array containing raster values
+    """
     #print src_ds.GetFileList()[0]
     b = src_ds.GetRasterBand(bnum)
     b_ndv = get_ndv_b(b)
@@ -81,6 +214,29 @@ def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
 #Add option to build overviews when writing GTiff
 #Input proj must be WKT
 def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, create=False, sparse=False):
+    """Write input array to disk as GeoTiff
+
+    Parameters
+    ----------
+    a : np.array or np.ma.array
+        Input array
+    dst_fn : str
+        Output filename
+    src_ds: GDAL Dataset, optional
+        Source Dataset to use for creating copy
+    bnum : int, optional 
+        Output band
+    ndv : float, optional 
+        Output NoData Value
+    gt : list, optional
+        Output GeoTransform
+    proj : str, optional
+        Output Projection (OGC WKT or PROJ.4 format)
+    create : bool, optional
+        Create new dataset
+    sparse : bool, optional
+        Output should be created with sparse options
+    """
     #If input is not np.ma, this creates a new ma, which has default filL_value of 1E20
     #Must manually override with ndv
     #Also consumes a lot of memory
@@ -204,6 +360,23 @@ def get_ndv_ds(ds, bnum=1):
 
 #Return nodata value for GDAL band
 def get_ndv_b(b):
+    """Get NoData value for GDAL band.
+
+    If NoDataValue is not set in the band, 
+    extract upper left and lower right pixel values.
+    Otherwise assume NoDataValue is 0.
+ 
+    Parameters
+    ----------
+    b : GDALRasterBand object 
+        This is the input band.
+ 
+    Returns
+    -------
+    b_ndv : float 
+        NoData value 
+    """
+
     b_ndv = b.GetNoDataValue()
     if b_ndv is None:
         #Check ul pixel for ndv
@@ -227,30 +400,6 @@ def get_ndv_b(b):
         else:
             b_ndv = 0
     return b_ndv
-
-#Check for file existence
-def fn_check(fn):
-    return os.path.exists(fn)
-
-#This method avoids race condition, but is slower than simple os.path.exists
-def fn_check_full(fn):
-    status = True 
-    if not os.path.isfile(fn): 
-        status = False
-    else:
-        try: 
-            open(fn) 
-        except IOError:
-            status = False
-    return status
-
-def fn_list_check(fn_list):
-    status = True
-    for fn in fn_list:
-        if not fn_check(fn):
-            print('Unable to find: %s' % fn)
-            status = False
-    return status
 
 #Write out a recarray as a csv
 def write_recarray(outfn, ra):

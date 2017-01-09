@@ -1,9 +1,7 @@
 #! /usr/bin/env python
-
-#David Shean
-#dshean@gmail.com
-
-#Library with time conversion utilities
+"""
+Time conversion utilities
+"""
 
 import os
 from datetime import datetime, timedelta
@@ -13,6 +11,7 @@ import numpy as np
 import matplotlib.dates
 import dateutil.parser
 
+#Seconds per year
 spy = 86400.*365.25
 
 #Get timezone for a given lat/lon

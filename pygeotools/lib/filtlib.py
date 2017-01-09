@@ -1,11 +1,8 @@
 #! /usr/bin/env python
 """
-David Shean
-dshean@gmail.com
+Various filters that operate on NumPy arrays 
 
-Filter an input raster with various approaches
-
-Could use some serious cleanup - lots of obsolute code
+Needs serious cleanup - lots of obsolute code
 """
 
 import sys

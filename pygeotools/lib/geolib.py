@@ -1,10 +1,9 @@
 #! /usr/bin/env python
-
 """
-David Shean
-dshean@gmail.com
+Various geospatial functions for rasters, vectors.
 
-Library of various useful raster geospatial functions
+Also includes constants helper functions for coordinate transformations.
+
 """
 
 #Need to make sure all geom have spatial reference included
