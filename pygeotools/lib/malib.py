@@ -2,7 +2,7 @@
 """
 Functions involving masked arrays
 
-Some functions are general, others involve geospatial information
+Some functions are general array operations, others involve geospatial information
 
 """
 
@@ -725,6 +725,8 @@ class DEMStack:
             self.stack_mean_hs = iolib.fn_getma(hs_fn)
 
 def stack_smooth(s_orig, size=7, save=False):
+    """Run Gaussian smoothing filter on exising stack object
+    """
     from copy import deepcopy
     from pygeotools.lib import filtlib
     print("Copying original DEMStack")
@@ -760,6 +762,8 @@ def stack_smooth(s_orig, size=7, save=False):
 #extent = [-1692221, -365223, -1551556, -245479]
 #Should also take pixel indices
 def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
+    """Create a new stack object with limited extent from an exising stack object
+    """
     #Should check for valid extent
 
     #This is not memory efficient, but is much simpler
@@ -845,6 +849,8 @@ def stack_clip(s_orig, extent, out_stack_fn=None, copy=True, save=False):
 #Note: See stack_filter.py for examples of generating idx for subset of stack
 #This will pull out a subset of an existing stack
 def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
+    """Create a new stack object as a subset of an exising stack object
+    """
     #This must be a numpy boolean array
     idx = np.array(idx)
     if np.any(idx):
@@ -910,6 +916,8 @@ def get_stack_subset(s_orig, idx, out_stack_fn=None, copy=True, save=False):
 
 #First stack should be "master" - preserve stats, etc
 def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
+    """Merge two stack objects
+    """
     from pygeotools.lib import geolib
     from copy import deepcopy
     #Assumes input stacks have identical extent, resolution, and projection
@@ -982,6 +990,8 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
 
 #Compute linear regression for every pixel in stack
 def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
+    """Compute per-pixel linear regression for stack object
+    """
     from pygeotools.lib import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
@@ -1349,9 +1359,11 @@ def ndv_trim(a):
     #return a[edge_bbox[1]:edge_bbox[3], edge_bbox[0]:edge_bbox[2]]
     return a[edge_bbox[0]:edge_bbox[1], edge_bbox[2]:edge_bbox[3]]
 
-#Fill masked areas with random noise
-#This is needed for any fft-based operations
 def randomfill(a):
+    """Fill masked areas with random noise
+    
+    This is needed for any fft-based operations
+    """
     a = checkma(a)
     #For data that have already been normalized,
     #This provides a proper normal distribution with mean=0 and std=1
@@ -1362,11 +1374,13 @@ def randomfill(a):
     b = a.filled(0) + noise
     return b
 
-#Wrapper for functions that can't handle ma (e.g. scipy.ndimage)
-#Substitutes np.nan
-#This will force filters to ignore nan, but causes adjacent pixels to be set to nan as well
-#http://projects.scipy.org/scipy/ticket/1155 
 def nanfill(a, f_a, *args, **kwargs):
+    """Fill masked areas with np.nan
+
+    Wrapper for functions that can't handle ma (e.g. scipy.ndimage)
+    
+    This will force filters to ignore nan, but causes adjacent pixels to be set to nan as well: http://projects.scipy.org/scipy/ticket/1155 
+    """
     a = checkma(a)
     ndv = a.fill_value  
     #Note: The following fails for arrays that are not float (np.nan is float)
@@ -1381,6 +1395,8 @@ def nanfill(a, f_a, *args, **kwargs):
 #=======================
 
 def fast_median(a):
+    """Fast median operation for masked array using 50th-percentile
+    """
     a = checkma(a)
     #return scoreatpercentile(a.compressed(), 50)
     if a.count() > 0:
@@ -1389,11 +1405,11 @@ def fast_median(a):
         out = np.ma.masked
     return out
 
-#Compute median absolute difference
-#This is NMAD
-#Note: 1.4826 = 1/c
-#def mad(a, c=0.6745):
 def mad(a, c=1.4826):
+    """Compute normalized median absolute difference
+    
+    Note: 1.4826 = 1/0.6745
+    """
     a = checkma(a)
     #return np.ma.median(np.fabs(a - np.ma.median(a))) / c
     if a.count() > 0:
@@ -1408,6 +1424,8 @@ def mad_ax0(a, c=1.4826):
 
 #Percentile values
 def calcperc(b, perc=(0.1,99.9)):
+    """Calculate values at specified percentiles
+    """
     b = checkma(b)
     if b.count() > 0:
         #low = scoreatpercentile(b.compressed(), perc[0])
@@ -1429,6 +1447,8 @@ def calcperc(b, perc=(0.1,99.9)):
     return low, high
 
 def iqr(b, perc=(25, 75)):
+    """Inter-quartile range
+    """
     b = checkma(b)
     low, high = calcperc(b, perc)
     return low, high, high - low
@@ -1465,6 +1485,10 @@ def robust_spread_fltr(b, sigma=3):
 #The a.mean(dtype='float64') is needed for accuracte calculation
 #names = ['count', 'min', 'max', 'mean', 'std', 'med', 'mad', 'q1', 'q2', 'iqr', 'mode', 'p16', 'p84', 'spread']
 def print_stats(a, full=False):
+    """Compute and print statistics for input array
+
+    Needs to be cleaned up, return a stats object
+    """
     from scipy.stats.mstats import mode 
     a = checkma(a)
     thresh = 4E6
@@ -1519,6 +1543,8 @@ def checkma(a, fix=True):
 #Image view of ma
 #Should probably move this to imview.py
 def iv(b, **kwargs):
+    """Quick access to imview for interactive sessions
+    """
     import matplotlib.pyplot as plt
     import imview.imviewer as imview 
     b = checkma(b)

@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 """
-Various filters that operate on NumPy arrays 
+Filters for NumPy arrays 
 
-Needs serious cleanup - lots of obsolute code
 """
 
 import sys
@@ -22,8 +21,9 @@ from pygeotools.lib import warplib
 #dem = iolib.ds_getma(dem_ds, 1).astype(np.float32)
 #Return original dtype?
 
-#Absolute elevation range filter using an existing low-res DEM
 def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
+    """Absolute elevation difference range filter using values from a source raster file and a reference raster file 
+    """
     try:
         open(refdem_fn)
     except IOError:
@@ -36,6 +36,8 @@ def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
     return out
 
 def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
+    """Absolute elevation difference range filter using values from a source array and a reference array 
+    """
     if smooth:
         refdem = gauss_fltr_astropy(refdem)
         dem = gauss_fltr_astropy(dem)
@@ -85,12 +87,16 @@ def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
 
 #Check input range
 def range_fltr(dem, rangelim):
+    """Range filter (helper function)
+    """
     print('Excluding values outside of range: {0:0.1f} to {1:0.1f} m'.format(*rangelim))
     out = np.ma.masked_outside(dem, *rangelim)
     out.set_fill_value(dem.fill_value)
     return out
 
 def perc_fltr(dem, perc=(1.0, 99.0)):
+    """Percentile filter
+    """
     rangelim = malib.calcperc(dem, perc)
     print('Excluding values outside of percentile ({0:0.2f}, {1:0.2f}) range: {2:0.1f} to {3:0.1f} m'.format(*(perc + rangelim)))
     out = range_fltr(dem, rangelim)
@@ -102,6 +108,8 @@ def perc_fltr(dem, perc=(1.0, 99.0)):
 #0.135, 99.865
 
 def threesigma(dem):
+    """3-sigma filter
+    """
     std = dem.std()
     u = dem.mean()
     rangelim = (u - 3*std, u + 3*std)
@@ -110,6 +118,8 @@ def threesigma(dem):
 
 #This is used to clean up difference maps before alignment
 def mad_fltr(dem, mad_sigma=2):
+    """Median absolute deviation * factor filter
+    """
     med = np.ma.median(dem)
     mad = malib.mad(dem)
     rangelim = (med - mad_sigma * mad, med + mad_sigma * mad)
@@ -142,29 +152,31 @@ def gauss_fltr(dem, sigma=1):
     out.set_fill_value(dem.fill_value)
     return out
 
-#http://stackoverflow.com/questions/23832852/by-which-measures-should-i-set-the-size-of-my-gaussian-filter-in-matlab
-#width1 = 3; sigma1 = (width1-1) / 6;
-#Specify width for smallest feature of interest
-#Determine sigma appropriately
-
-#sigma is width of 1 std in pixels (not multiplier)
-#scipy and astropy both use cutoff of 4*sigma on either side of kernel - 99.994%
-#3*sigma on either side of kernel - 99.7%
-#Filter width will be a multiple of 8 times sigma 
-#Specify sigma with this in mind
-
-#Alternatively, specify width of feature, compute appropriate sigma for kernel
-#specify size, then compute sigma:
-#sigma = (size - 1) / 8.
-
-#If size is < the required width for 6-8 sigma
-#Need to use different mode to create kernel to ensure 
-#mode 'oversample' and 'center' are essentially identical for sigma 1, but very different for sigma 0.3
-
-#The sigma/size calculations below should work for non-integer sigma
-
-#Astropy gaussian filter properly handles convolution with NaN
 def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior=False):
+    """Astropy gaussian filter properly handles convolution with NaN
+
+    http://stackoverflow.com/questions/23832852/by-which-measures-should-i-set-the-size-of-my-gaussian-filter-in-matlab
+
+    width1 = 3; sigma1 = (width1-1) / 6;
+    Specify width for smallest feature of interest and determine sigma appropriately
+
+    sigma is width of 1 std in pixels (not multiplier)
+
+    scipy and astropy both use cutoff of 4*sigma on either side of kernel - 99.994%
+
+    3*sigma on either side of kernel - 99.7%
+
+    If sigma is specified, filter width will be a multiple of 8 times sigma 
+
+    Alternatively, specify filter size, then compute sigma: sigma = (size - 1) / 8.
+
+    If size is < the required width for 6-8 sigma, need to use different mode to create kernel
+
+    mode 'oversample' and 'center' are essentially identical for sigma 1, but very different for sigma 0.3
+
+    The sigma/size calculations below should work for non-integer sigma
+    """
+
     #import astropy.nddata
     import astropy.convolution
     dem = malib.checkma(dem)
@@ -215,6 +227,10 @@ def gauss_fltr_astropy(dem, size=None, sigma=None, origmask=False, fill_interior
 #Very fast
 
 def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
+    """Pyaramidal downsampling approach for gaussian smoothing
+    Avoids the need for large kernels, very fast
+    Needs testing
+    """
     dem = malib.checkma(dem)
     levels = int(np.floor(np.log2(size)))
     #print levels
@@ -265,6 +281,9 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
 
 #Use the OpenCV gaussian filter - still propagates NaN
 def gauss_fltr_opencv(dem, size=3, sigma=1):
+    """OpenCV Gaussian filter
+    Still propagates NaN values
+    """
     import cv2
     dem = malib.checkma(dem)
     dem_cv = cv2.GaussianBlur(dem.filled(np.nan), (size, size), sigma)
@@ -273,6 +292,8 @@ def gauss_fltr_opencv(dem, size=3, sigma=1):
     return out
 
 def gaussfill(dem, size=3, newmask=None):
+    """Gaussian filter with filling
+    """
     smooth = gauss_fltr_astropy(dem, size=size)
     smooth[~dem.mask] = dem[~dem.mask]
     if newmask is not None:
@@ -294,8 +315,11 @@ def bandpass(dem, size1=None, size2=None):
 
 #Smooth and remove noise with median filter 
 def median_fltr(dem, fsize=7, origmask=False):
+    """Scipy.ndimage median filter
+
+    Does not properly handle NaN
+    """
     print("Applying median filter with size %s" % fsize)
-    #Note, ndimage doesn't properly handle ma - convert to nan
     from scipy.ndimage.filters import median_filter
     dem_filt_med = median_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
@@ -305,8 +329,10 @@ def median_fltr(dem, fsize=7, origmask=False):
     out.set_fill_value(dem.fill_value)
     return out
 
-#Use the OpenCV gaussian filter - still propagates NaN
+#Use the OpenCV median filter - still propagates NaN
 def median_fltr_opencv(dem, size=3, iterations=1):
+    """OpenCV median filter
+    """
     import cv2
     dem = malib.checkma(dem)
     if size > 5:
@@ -321,6 +347,10 @@ def median_fltr_opencv(dem, size=3, iterations=1):
     return out
 
 def circular_mask(size):
+    """Create a circular mask for an array
+    
+    Useful when sampling rasters for a laser shot
+    """
     r = size/2
     c = (r,r)
     y,x = np.ogrid[-c[0]:size-c[0], -c[1]:size-c[1]]
@@ -329,6 +359,12 @@ def circular_mask(size):
 
 #This correctly handles nan, and is efficient for smaller arrays
 def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
+    """General rolling filter (default operator is median filter)
+
+    Can input any function f
+
+    Efficient for smaller arrays, correclty handles NaN, fills gaps
+    """
     dem = malib.checkma(dem)
     newshp = (dem.size, size*size)
     #Force a step size of 1
@@ -342,11 +378,12 @@ def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
     out.set_fill_value(dem.fill_value)
     return out
 
-#Smooth and remove noise with median filter 
-#Note, the skimage median_filter offers a mask option
-#This fills in nodata areas with median of valid pixels!
-#Effectively an inpainting routine
 def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
+    """
+    Older skimage.filter.median_filter
+
+    This smooths, removes noise and fills in nodata areas with median of valid pixels!  Effectively an inpainting routine
+    """
     #Note, ndimage doesn't properly handle ma - convert to nan
     dem = malib.checkma(dem)
     dem = dem.astype(np.float64)
@@ -382,9 +419,11 @@ def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
         out = np.ma.array(out, mask=maskfill, fill_value=dem.fill_value)
     return out
 
-#Note: this has some nasty ringing
-#Uniform (mean) filter 
 def uniform_fltr(dem, fsize=7):
+    """Uniform (mean) filter
+    
+    Note: suffers from significant ringing
+    """
     print("Applying uniform filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
     from scipy.ndimage.filters import unifiform_filter
@@ -420,9 +459,11 @@ def butter_low(dt_list, val, lowpass=1.0):
     val_f = scipy.signal.filtfilt(b, a, val)
     return val_f
 
-#This is framework for a butterworth bandpass for 1D data
-#Needs to be cleaned up and generalized
 def butter(dt_list, val, lowpass=1.0):
+    """This is framework for a butterworth bandpass for 1D data
+    
+    Needs to be cleaned up and generalized
+    """
     import scipy.signal
     import matplotlib.pyplot as plt
     #dt is 300 s, 5 min
@@ -474,16 +515,19 @@ def butter(dt_list, val, lowpass=1.0):
     val_f_notide = val - val_f_tide 
     # TODO Does this need to return something
 
-#This is a framework for 2D FFT filtering
-#It has not be tested or finished - Ben suggests this is a dead end
-#See separate utility freq_analysis.py
-
-#Want to fit linear function to artifact line in freq space
-#Then mask everything near that line at distances of ~5-200 pixels
-#Or whatever the maximum CCD artifact dimension happens to be
-#This will depend on scaling - consult CCD map for interval
-
 def freq_filt(bma):
+    """
+    This is a framework for 2D FFT filtering. It has not be tested or finished - might be a dead end
+
+    See separate utility freq_analysis.py
+    """
+    """
+    Want to fit linear function to artifact line in freq space,
+    Then mask everything near that line at distances of ~5-200 pixels, 
+    Or whatever the maximum CCD artifact dimension happens to be, 
+    This will depend on scaling - consult CCD map for interval
+    """
+
     #Fill ndv with random data
     bf = malib.randomfill(bma)
 

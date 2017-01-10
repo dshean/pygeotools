@@ -14,9 +14,10 @@ import dateutil.parser
 #Seconds per year
 spy = 86400.*365.25
 
-#Get timezone for a given lat/lon
 #lon,lat = geolib.get_center(ds, t_srs=geolib.wgs_srs)
 def getTimeZone(lat, lon):
+    """Get timezone for a given lat/lon
+    """
     #Need to fix for Python 2.x and 3.X support
     import urllib.request, urllib.error, urllib.parse
     import xml.etree.ElementTree as ET
@@ -34,22 +35,24 @@ def getTimeZone(lat, lon):
         tzid = tz.attrib['TimeZoneId']
     return tzid 
 
-#Return local timezone time
 def getLocalTime(utc_dt, tz):
+    """Return local timezone time
+    """
     import pytz
     local_tz = pytz.timezone(tz)
     local_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(local_tz)
     return local_dt
 
-#Compute local time based on longitude
 def ul_time(utc_dt, lon):
+    """Compute local time for input longitude
+    """
     #return utc_dt + timedelta(hours=lon / np.pi * 12)
     offset = timedelta(hours=(lon*(24.0/360)))
     return utc_dt + offset
 
-#Compute local solar time
-#This should be relevant for illumination 
 def solarTime(utc_dt, lat, lon):
+    """Compute local solar time for given (lat, lon)
+    """
     import ephem
     o = ephem.Observer()
     o.date = utc_dt
@@ -63,13 +66,17 @@ def solarTime(utc_dt, lat, lon):
     solar_dt = datetime.combine(utc_dt.date(), t.time()) 
     return solar_dt 
 
-#Note: this returns current date if not found 
-#If only year is provided, will return current month, day
 def strptime_fuzzy(s):
+    """Fuzzy date string parsing
+
+    Note: this returns current date if not found. If only year is provided, will return current month, day
+    """
     dt = dateutil.parser.parse(str(s), fuzzy=True) 
     return dt 
 
 def fn_getdatetime(fn):
+    """Extract datetime from input filename
+    """
     dt_list = fn_getdatetime_list(fn)
     if dt_list:
         return dt_list[0]
@@ -78,6 +85,8 @@ def fn_getdatetime(fn):
 
 #Return datetime object extracted from arbitrary filename
 def fn_getdatetime_list(fn):
+    """Extract all datetime strings from input filename
+    """
     #Want to split last component
     fn = os.path.split(os.path.splitext(fn)[0])[-1]
     import re
@@ -117,9 +126,9 @@ def fn_getdatetime_list(fn):
     #out = [datetime.strptime(s, '%d%b%y') for s in dstr][0]
     return out
 
-#Determine time difference between inputs
-
 def get_t_factor(t1, t2):
+    """Time difference between two datetimes, expressed as decimal year 
+    """
     t_factor = None
     if t1 is not None and t2 is not None and t1 != t2:  
         dt = t2 - t1
@@ -149,6 +158,8 @@ def get_t_factor_fn(fn1, fn2, ds=None):
     return t_factor
 
 def sort_fn_list(fn_list):
+    """Sort input filename list by datetime
+    """
     dt_list = get_dt_list(fn_list)
     fn_list_sort = [fn for (dt,fn) in sorted(zip(dt_list,fn_list))]
     return fn_list_sort
@@ -177,6 +188,8 @@ def get_closest_dt_fn(fn, fn_list):
     return fn_list[idx]
 
 def get_closest_dt_idx(dt, dt_list):
+    """Find index of datetime in dt_list that is closest to input dt
+    """
     from pygeotools.lib import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
@@ -283,12 +296,16 @@ def center_date(dt1, dt2):
     return mean_date([dt1, dt2])
 
 def mean_date(dt_list):
+    """Calcuate mean datetime from datetime list
+    """
     dt_list_sort = sorted(dt_list)
     dt_list_sort_rel = [dt - dt_list_sort[0] for dt in dt_list_sort]
     avg_timedelta = sum(dt_list_sort_rel, timedelta())/len(dt_list_sort_rel)
     return dt_list_sort[0] + avg_timedelta
 
 def median_date(dt_list):
+    """Calcuate median datetime from datetime list
+    """
     #dt_list_sort = sorted(dt_list)
     idx = len(dt_list)/2
     if len(dt_list) % 2 == 0:
@@ -335,6 +352,8 @@ def dt_range(dt1, dt2, interval):
     return out
 
 def dt_cluster(dt_list, dt_thresh=16.0):
+    """Find clusters of similar datetimes within datetime list
+    """
     if not isinstance(dt_list[0], float):
         o_list = dt2o(dt_list)
     else:
@@ -373,6 +392,8 @@ def sinceEpoch(dt):
     return time.mktime(dt.timetuple())
 
 def dt2decyear(dt):
+    """Convert datetime to decimal year
+    """
     year = dt.year
     startOfThisYear = datetime(year=year, month=1, day=1)
     startOfNextYear = datetime(year=year+1, month=1, day=1)
@@ -382,6 +403,8 @@ def dt2decyear(dt):
     return year + fraction 
 
 def decyear2dt(t):
+    """Convert decimal year to datetime
+    """
     year = int(t)
     rem = t - year 
     base = datetime(year, 1, 1)
@@ -395,14 +418,16 @@ def decyear2dt(t):
 #Better to use astro libe or jdcal for julian to gregorian conversions 
 #Source: http://code.activestate.com/recipes/117215/
 def dt2jd(dt):
-    """Returns the Julian day number of a date."""
+    """Convert datetime to julian date
+    """
     a = (14 - dt.month)//12
     y = dt.year + 4800 - a
     m = dt.month + 12*a - 3
     return dt.day + ((153*m + 2)//5) + 365*y + y//4 - y//100 + y//400 - 32045
 
 def jd2dt(jd):
-    """Returns a date corresponding to the given Julian day number."""
+    """Convert julian date to datetime
+    """
     n = int(round(float(jd)))
     a = n + 32044
     b = (4*a + 3)//146097
@@ -424,27 +449,34 @@ def jd2dt(jd):
 
 #This has not been tested 
 def gps2dt(gps_week, gps_ms):
+    """Convert GPS week and ms to a datetime
+    """
     gps_epoch = datetime(1980,1,6,0,0,0)
     gps_week_s = timedelta(seconds=gps_week*7*24*60*60)
     gps_ms_s = timedelta(milliseconds=gps_ms) 
     return gps_epoch + gps_week_s + gps_ms_s
 
-#Matlab ordinal to Python datetime
-#Need to account for AD 0 and AD 1 discrepancy between the two
-#http://sociograph.blogspot.com/2011/04/how-to-avoid-gotcha-when-converting.html
-#python_datetime = datetime.fromordinal(int(o)) + timedelta(days=o%1) - timedelta(days = 366)
-#But this should be handled in the o2dt
 def mat2dt(o):
+    """Convert Matlab ordinal to Python datetime
+
+    Need to account for AD 0 and AD 1 discrepancy between the two: http://sociograph.blogspot.com/2011/04/how-to-avoid-gotcha-when-converting.html
+    
+    python_datetime = datetime.fromordinal(int(o)) + timedelta(days=o%1) - timedelta(days = 366)
+    """
     return o2dt(o) - timedelta(days=366)
 
 #Python datetime to matlab ordinal
 def dt2mat(dt):
+    """Convert Python datetime to Matlab ordinal
+    """
     return dt2o(dt + timedelta(days=366))
 
 #note
 #If ma, need to set fill value to 0 when converting to ordinal
 
 def dt2o(dt):
+    """Convert datetime to Python ordinal
+    """
     #return datetime.toordinal(dt)
     #This works for arrays of dt
     #return np.array(matplotlib.dates.date2num(dt))
@@ -452,6 +484,8 @@ def dt2o(dt):
 
 #Need to split ordinal into integer and decimal parts
 def o2dt(o):
+    """Convert Python ordinal to datetime
+    """
     #omod = np.modf(o)
     #return datetime.fromordinal(int(omod[1])) + timedelta(days=omod[0])
     #Note: num2date returns dt or list of dt
@@ -461,6 +495,8 @@ def o2dt(o):
 
 #Return integer DOY (julian)
 def dt2j(dt):
+    """Convert datetime to integer DOY (Julian)
+    """
     #return int(dt.strftime('%j'))
     return int(dt.timetuple().tm_yday)
 
@@ -468,6 +504,8 @@ def dt2j(dt):
 #Add comment to http://stackoverflow.com/questions/2427555/python-question-year-and-day-of-year-to-date
 #ordinal allows for days>365 and decimal days
 def j2dt(yr, j):
+    """Convert year + integer DOY (Julian) to datetime
+    """
     return o2dt(dt2o(datetime(int(yr), 1, 1))+j-1)
     #The solution below can't deal with jd>365
     #jmod = np.modf(j)

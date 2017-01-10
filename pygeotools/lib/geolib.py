@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 """
-Various geospatial functions for rasters, vectors.
-
-Also includes constants helper functions for coordinate transformations.
+Geospatial functions for rasters, vectors.
 
 """
 
@@ -17,7 +15,10 @@ from osgeo import gdal, ogr, osr
 #Enable GDAL exceptions
 gdal.UseExceptions()
 
+#Below are many spatial reference system definitions
+
 #Define WGS84 srs
+#mpd = 111319.9
 wgs_srs = osr.SpatialReference()
 wgs_srs.SetWellKnownGeogCS('WGS84')
 wgs_proj = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
@@ -103,6 +104,8 @@ hma_aea_srs.ImportFromProj4(hma_aea_proj)
 #Check that all inputs have same nonzero length
 
 def cT_helper(x, y, z, in_srs, out_srs):
+    """Helper function that wraps osr CoordinatTransformation
+    """
     x, y, z = np.atleast_1d(x), np.atleast_1d(y), np.atleast_1d(z)
     #Handle cases where z is 0 - probably a better way to use broadcasting for this
     if x.shape[0] != z.shape[0]:
@@ -181,6 +184,8 @@ def sps2geoid(x, y, z=0.0, geoid=sps_egm08_srs):
     return cT_helper(x, y, z, sps_srs, geoid)
 
 def localortho(lon, lat):
+    """Create srs for local orthographic projection centered at lat, lon
+    """
     local_srs = osr.SpatialReference()
     local_proj = '+proj=ortho +lat_0=%0.7f +lon_0=%0.7f +datum=WGS84 +units=m +no_defs ' % (lat, lon)
     local_srs.ImportFromProj4(local_proj)
@@ -188,6 +193,10 @@ def localortho(lon, lat):
 
 #Transform geometry to local orthographic projection, useful for width/height and area calc
 def geom2localortho(geom):
+    """Convert existing geom to local orthographic projection
+
+    Useful for local cartesian distance/area calculations
+    """
     cx, cy = geom.Centroid().GetPoint_2D()
     lon, lat, z = cT_helper(cx, cy, 0, geom.GetSpatialReference(), wgs_srs)
     local_srs = localortho(lon,lat)
@@ -217,29 +226,28 @@ def lldist(pt1, pt2):
     d = vincenty((lat1, lon1), (lat2, lon2))
     return d
 
-"""
-From Ben Smith email on 7/12/12: PS scale m file
-
-This function calculates the scaling factor for a polar stereographic
-projection (ie. SSM/I grid) to correct area calculations. The scaling
-factor is defined (from Snyder, 1982, Map Projections used by the U.S.
-Geological Survey) as:
-
-k = (mc/m)*(t/tc), where:
-
-m = cos(lat)/sqrt(1 - e2*sin(lat)^2)
-t = tan(Pi/4 - lat/2)/((1 - e*sin(lat))/(1 + e*sin(lat)))^(e/2)
-e2 = 0.006693883 is the earth eccentricity (Hughes ellipsoid)
-e = sqrt(e2)
-mc = m at the reference latitude (70 degrees)
-tc = t at the reference latitude (70 degrees)
-
-The ratio mc/tc is precalculated and stored in the variable m70_t70.
-
-"""
 #Scaling factor for area calculations in polar stereographic
 #Should multiply the returned value by computed ps area to obtain true area
 def scale_ps(lat):
+    """
+    This function calculates the scaling factor for a polar stereographic
+    projection (ie. SSM/I grid) to correct area calculations. The scaling
+    factor is defined (from Snyder, 1982, Map Projections used by the U.S.
+    Geological Survey) as:
+
+    k = (mc/m)*(t/tc), where:
+
+    m = cos(lat)/sqrt(1 - e2*sin(lat)^2)
+    t = tan(Pi/4 - lat/2)/((1 - e*sin(lat))/(1 + e*sin(lat)))^(e/2)
+    e2 = 0.006693883 is the earth eccentricity (Hughes ellipsoid)
+    e = sqrt(e2)
+    mc = m at the reference latitude (70 degrees)
+    tc = t at the reference latitude (70 degrees)
+
+    The ratio mc/tc is precalculated and stored in the variable m70_t70.
+
+    From Ben Smith PS scale m file (7/12/12)
+    """
     lat = np.array(lat)
     if np.any(lat > 0):
         m70_t70 = 1.9332279 
@@ -272,6 +280,8 @@ def wraplon(lon):
     return lon
 
 def lon360to180(lon):
+    """Convert longitude from (0, 360) to (-180, 180)
+    """
     if np.any(lon > 360.0) or np.any(lon < 0.0):
         print("Warning: lon outside expected range")
         lon = wraplon(lon)
@@ -281,6 +291,8 @@ def lon360to180(lon):
     return lon
 
 def lon180to360(lon):
+    """Convert longitude from (-180, 180) to (0, 360)
+    """
     if np.any(lon > 180.0) or np.any(lon < -180.0):
         print("Warning: lon outside expected range")
         lon = lon360to180(lon)
@@ -290,6 +302,8 @@ def lon180to360(lon):
 
 #Want to accept np arrays for these
 def dd2dms(dd):
+    """Convert decimal degrees to degrees, minutes, seconds
+    """
     n = dd < 0
     dd = abs(dd)
     m,s = divmod(dd*3600,60)
@@ -299,6 +313,8 @@ def dd2dms(dd):
     return d,m,s
 
 def dms2dd(d,m,s):
+    """Convert degrees, minutes, seconds to decimal degrees
+    """
     if d < 0:
         sign = -1
     else:
@@ -319,10 +335,13 @@ def dms2dd_str(dms_str):
     dd = dms2dd(degree*sign, minute, second+frac_seconds) 
     return dd
 
-#Note: These should work with input np arrays
-#Note: these functions are likely in osr/pyproj
-#GDAL model used here - upper left corner of upper left pixel for mX, mY (and in GeoTransform)
 def mapToPixel(mX, mY, geoTransform):
+    """Convert map coordinates to pixel coordinates based on geotransform
+    
+    Accepts float or NumPy arrays
+
+    GDAL model used here - upper left corner of upper left pixel for mX, mY (and in GeoTransform)
+    """
     mX = np.asarray(mX)
     mY = np.asarray(mY)
     if geoTransform[2] + geoTransform[4] == 0:
@@ -335,6 +354,12 @@ def mapToPixel(mX, mY, geoTransform):
 
 #Add 0.5 px offset to account for GDAL model - gt 0,0 is UL corner, pixel 0,0 is center
 def pixelToMap(pX, pY, geoTransform):
+    """Convert pixel coordinates to map coordinates based on geotransform
+    
+    Accepts float or NumPy arrays
+
+    GDAL model used here - upper left corner of upper left pixel for mX, mY (and in GeoTransform)
+    """
     pX = np.asarray(pX, dtype=float)
     pY = np.asarray(pY, dtype=float)
     pX += 0.5
@@ -367,9 +392,13 @@ def invertGeoTransform(geoTransform):
     outGeoTransform[3] = (-geoTransform[1] * geoTransform[3] + geoTransform[0] * geoTransform[4]) * invDet
     return outGeoTransform
 
-#Note: this is very fast for mean, std, count
-#Significantly slower for median
 def block_stats(x,y,z,ds,stat='median'):
+    """Compute points on a regular grid (matching input GDAL Dataset) from scattered point data using specified statistic
+
+    Wrapper for  scipy.stats.binned_statistic_2d
+    
+    Note: this is very fast for mean, std, count, but bignificantly slower for median
+    """
     import scipy.stats as stats
     extent = ds_extent(ds)
     #[[xmin, xmax], [ymin, ymax]]
@@ -402,6 +431,8 @@ def block_stats(x,y,z,ds,stat='median'):
 #Just need to account for ndv and the upper left x_edge and y_edge
 
 def block_stats_grid(x,y,z,ds,stat='median'):
+    """Fill regular grid (matching input GDAL Dataset) from scattered point data using specified statistic
+    """
     mx, my, mz = block_stats(x,y,z,ds,stat)
     gt = ds.GetGeoTransform()
     pX, pY = mapToPixel(mx, my, gt)
@@ -471,6 +502,10 @@ def block_stats_grid_gen(x, y, z, res=None, srs=None, stat='median'):
     return block_stats_grid(x,y,z,ds,stat), ds
 
 def mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32):
+    """Create a new GDAL Dataset in memory
+
+    Useful for various applications that require a Dataset
+    """
     #These round down to int
     #dst_ns = int((extent[2] - extent[0])/res)
     #dst_nl = int((extent[3] - extent[1])/res)
@@ -486,6 +521,8 @@ def mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32):
 
 #Modify proj/gt of dst_fn in place
 def copyproj(src_fn, dst_fn, gt=True):
+    """Copy projection and geotransform from one raster file to another
+    """
     src_ds = gdal.Open(src_fn, gdal.GA_ReadOnly)
     dst_ds = gdal.Open(dst_fn, gdal.GA_Update)
     dst_ds.SetProjection(src_ds.GetProjection())
@@ -503,9 +540,11 @@ def copyproj(src_fn, dst_fn, gt=True):
     src_ds = None
     dst_ds = None
 
-#Duplicate the geometry, or segfault
-#See: http://trac.osgeo.org/gdal/wiki/PythonGotchas
 def geom_dup(geom):
+    """Create duplicate geometry
+    
+    Needed to avoid segfault when passing geom around. See: http://trac.osgeo.org/gdal/wiki/PythonGotchas
+    """
     g = ogr.CreateGeometryFromWkt(geom.ExportToWkt())
     g.AssignSpatialReference(geom.GetSpatialReference())
     return g 
@@ -514,6 +553,8 @@ def geom_dup(geom):
 #Assumes geom has srs defined
 #Modifies geom in place
 def geom_transform(geom, t_srs):
+    """Transform a geometry in place
+    """
     s_srs = geom.GetSpatialReference()
     if not s_srs.IsSame(t_srs):
         ct = osr.CoordinateTransformation(s_srs, t_srs)
@@ -527,9 +568,11 @@ def shp_fieldnames(lyr):
         f_list.append(fdef.GetFieldDefn(i).GetName())
     return f_list
 
-#Get a dictionary for all features in a shapefile
-#Optionally, specify fields
 def shp_dict(shp_fn, fields=None, geom=True):
+    """Get a dictionary for all features in a shapefile
+    
+    Optionally, specify fields
+    """
     from pygeotools.lib import timelib
     ds = ogr.Open(shp_fn)
     lyr = ds.GetLayer()
@@ -556,6 +599,8 @@ def shp_dict(shp_fn, fields=None, geom=True):
     return d_list
 
 def lyr_proj(lyr, t_srs, preserve_fields=True):
+    """Reproject an OGR layer
+    """
     #Need to check t_srs
     s_srs = lyr.GetSpatialRef()
     cT = osr.CoordinateTransformation(s_srs, t_srs)
@@ -607,6 +652,8 @@ def lyr_proj(lyr, t_srs, preserve_fields=True):
 #See https://pcjericks.github.io/py-gdalogr-cookbook/vector_layers.html#convert-vector-layer-to-array
 #Should check srs, as shp could be WGS84
 def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
+    """Rasterize input shapefile to match existing raster Dataset (or specified res/extent/t_srs)
+    """
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
     shp_extent = lyr.GetExtent()
@@ -653,10 +700,11 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     a = ~(a.astype('Bool'))
     return a
 
-#Get geom from shapefile
-#Need to handle multi-part geom
-#http://osgeo-org.1560.x6.nabble.com/Multipart-to-singlepart-td3746767.html
 def shp2geom(shp_fn):
+    """Extract geometries from input shapefile
+    
+    Need to handle multi-part geom: http://osgeo-org.1560.x6.nabble.com/Multipart-to-singlepart-td3746767.html
+    """
     ds = ogr.Open(shp_fn)
     lyr = ds.GetLayer()
     srs = lyr.GetSpatialRef()
@@ -677,9 +725,9 @@ def shp2geom(shp_fn):
     ds = None
     return geom_list
 
-#Write out a shapefile for input geometry
-#Useful for debugging
 def geom2shp(geom, out_fn, fields=False):
+    """Write out a new shapefile for input geometry
+    """
     from pygeotools.lib import timelib
     driverName = "ESRI Shapefile"
     drv = ogr.GetDriverByName(driverName)
@@ -714,23 +762,19 @@ def geom2shp(geom, out_fn, fields=False):
     out_ds = None
     #return status?
 
-#get_outline is an attempt to reproduce the PostGIS Raster ST_MinConvexHull function
-#Could potentially do the following:
-#Extract random pts from unmasked elements, get indices
-#Run scipy convex hull
-#Convert hull indices to mapped coords
-
-#See this:
-#http://stackoverflow.com/questions/3654289/scipy-create-2d-polygon-mask
-
-#This generates a wkt polygon outline of valid data for the input raster
-#Need to implement geoma, or take ma as optional argument don't want to load again
 def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
-    gt = np.array(ds.GetGeoTransform())
+    """Generate outline of unmasked values in input raster
+
+    get_outline is an attempt to reproduce the PostGIS Raster ST_MinConvexHull function
+
+    Could potentially do the following: Extract random pts from unmasked elements, get indices, Run scipy convex hull, Convert hull indices to mapped coords
+
+    See this: http://stackoverflow.com/questions/3654289/scipy-create-2d-polygon-mask
+
+    This generates a wkt polygon outline of valid data for the input raster
     
-    #Want to limit the dimensions of a, as notmasked_edges is slow
-    from pygeotools.lib import iolib
-    a = iolib.gdal_getma_sub(ds, scale=scale)
+    Want to limit the dimensions of a, as notmasked_edges is slow: a = iolib.gdal_getma_sub(ds, scale=scale)
+    """
 
     #Create empty geometry
     geom = ogr.Geometry(ogr.wkbPolygon)
@@ -780,8 +824,11 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
         print("No unmasked values found")
     return geom
 
-#Given an input line geom, generate points at fixed interval
 def line2pts(geom, dl=None):
+    """Given an input line geom, generate points at fixed interval
+    
+    Useful for extracting profile data from raster
+    """
     #Extract list of (x,y) tuples at nodes
     nodes = geom.GetPoints()
     #print "%i nodes" % len(nodes)
@@ -847,8 +894,9 @@ def line2pts(geom, dl=None):
 
     return l, mX, mY 
     
-#Return resolution stats for an input dataset list
 def get_res_stats(ds_list, t_srs=None):
+    """Return resolution stats for an input dataset list
+    """
     if t_srs is None:
         t_srs = get_ds_srs(ds_list[0]) 
     res = np.array([get_res(ds, t_srs=t_srs) for ds in ds_list])
@@ -864,9 +912,9 @@ def get_res_stats(ds_list, t_srs=None):
     med = np.median(res)
     return (min, max, mean, med)
 
-#Get resolution of dataset in specified coordinate system
-#mpd = 111319.9
 def get_res(ds, t_srs=None, square=False):
+    """Get GDAL Dataset raster resolution
+    """
     gt = ds.GetGeoTransform()
     ds_srs = get_ds_srs(ds)
     #This is Xres, Yres
@@ -895,8 +943,9 @@ def get_res(ds, t_srs=None, square=False):
             res = [pt_ct_plus[0] - pt_ct[0], np.abs(pt_ct_plus[1] - pt_ct[1])]
     return res
 
-#Return center coordinates
 def get_center(ds, t_srs=None):
+    """Get center coordinates of GDAL Dataset
+    """
     gt = ds.GetGeoTransform()
     ds_srs = get_ds_srs(ds)
     #Note: this is center of center pixel, not ul corner of center pixel
@@ -907,14 +956,18 @@ def get_center(ds, t_srs=None):
         center = list(ct.TransformPoint(*center)[0:2])
     return center
 
-#Get srs object for input dataset
 def get_ds_srs(ds):
+    """Get srs object for GDAL Datset
+    """
     ds_srs = osr.SpatialReference()
     ds_srs.ImportFromWkt(ds.GetProjectionRef())
     return ds_srs
 
-#Return True if ds has proper srs defined
 def srs_check(ds):
+    """Check validitiy of Dataset srs
+
+    Return True if srs is properly defined
+    """
     # ds_srs = get_ds_srs(ds)
     gt = np.array(ds.GetGeoTransform())
     gt_check = ~np.all(gt == np.array((0.0, 1.0, 0.0, 0.0, 0.0, 1.0)))
@@ -925,8 +978,9 @@ def srs_check(ds):
         out = True
     return out
 
-#Check to see if dataset is empty after warp
 def ds_IsEmpty(ds):
+    """Check to see if dataset is empty after warp
+    """
     out = False
     b = ds.GetRasterBand(1)
     #Looks like this throws:
@@ -952,10 +1006,13 @@ def ds_IsEmpty(ds):
     #       break
     return out
 
-#Return min/max extent of dataset
-#xmin, xmax, ymin, ymax
-#If t_srs is specified, output will be converted to specified srs
 def ds_extent(ds, t_srs=None):
+    """Return min/max extent of dataset
+
+    xmin, xmax, ymin, ymax
+
+    If t_srs is specified, output will be converted to specified srs
+    """
     ul, ll, ur, lr = gt_corners(ds.GetGeoTransform(), ds.RasterXSize, ds.RasterYSize) 
     ds_srs = get_ds_srs(ds) 
     if t_srs is not None and not ds_srs.IsSame(t_srs):
@@ -973,6 +1030,8 @@ def ds_extent(ds, t_srs=None):
     return extent 
 
 def gt_corners(gt, nx, ny):
+    """Get corner coordinates based on input geotransform and raster dimensions
+    """
     ul = [gt[0], gt[3]]
     ll = [gt[0], gt[3] + (gt[5] * ny)]
     ur = [gt[0] + (gt[1] * nx), gt[3]]
@@ -980,6 +1039,8 @@ def gt_corners(gt, nx, ny):
     return ul, ll, ur, lr
 
 def corner_extent(ul, ll, ur, lr): 
+    """Get min/max extent based on corner coord
+    """
     xmin = min(ul[0], ll[0], ur[0], lr[0])
     xmax = max(ul[0], ll[0], ur[0], lr[0])
     ymin = min(ul[1], ll[1], ur[1], lr[1])
@@ -1008,8 +1069,9 @@ def extent_round(extent, res=1.0):
     extent_round[3] = min(extent[3], extent_round[3])
     return extent_round
 
-#Return dataset bbox envelope as geom
 def ds_geom(ds, t_srs=None):
+    """Return dataset bbox envelope as geom
+    """
     gt = ds.GetGeoTransform()
     ds_srs = get_ds_srs(ds)
     if t_srs is None:
@@ -1113,8 +1175,9 @@ def geom_intersection(geom_list, **kwargs):
         intsect = None
     return intsect 
 
-#Compute width and height of geometry in projected units
 def geom_wh(geom):
+    """Compute width and height of geometry in projected units
+    """
     e = geom.GetEnvelope()
     h = e[1] - e[0]
     w = e[3] - e[2]
@@ -1262,8 +1325,8 @@ def gdaldem_aspect(fn):
 
 #Perhaps this should be generalized, and moved to malib
 def bilinear(px, py, band_array, gt):
-    '''Bilinear interpolated point at(px, py) on band_array
-    example: bilinear(2790501.920, 6338905.159)'''
+    """Bilinear interpolated point at(px, py) on band_array
+    """
     #import malib
     #band_array = malib.checkma(band_array)
     ndv = band_array.fill_value
@@ -1299,11 +1362,14 @@ def bilinear(px, py, band_array, gt):
             band_array[iy2,ix1]*dx2*dy1/div +
             band_array[iy2,ix2]*dx1*dy1/div)
 
-#Return offset for center of ds
-#Offset is added to input (presumably WGS84 HAE) to get to geoid
 #Jak values over fjord are ~30, offset is -29.99
-#Note: requires vertical offset grids in proj share dir - see earlier note
 def get_geoid_offset(ds, geoid_srs=egm08_srs):
+    """Return offset for center of ds
+    
+    Offset is added to input (presumably WGS84 HAE) to get to geoid
+    
+    Note: requires vertical offset grids in proj share dir - see earlier note
+    """
     ds_srs = get_ds_srs(ds)
     c = get_center(ds)
     x, y, z = cT_helper(c[0], c[1], 0.0, ds_srs, geoid_srs)
@@ -1425,6 +1491,8 @@ def map_interp(bma, gt, stride=1, full_array=True):
     return zia
 
 def get_xy_ma(bma, gt, stride=1, origmask=True, newmask=None):
+    """Return arrays of x and y map coordinates for input array and geotransform
+    """
     pX = np.arange(0, bma.shape[1], stride)
     pY = np.arange(0, bma.shape[0], stride)
     psamp = np.meshgrid(pX, pY)
@@ -1441,6 +1509,8 @@ def get_xy_ma(bma, gt, stride=1, origmask=True, newmask=None):
     return mX, mY
 
 def get_xy_grids(ds, stride=1, getval=False):
+    """Return arrays of x and y map coordinates for input GDAL Dataset 
+    """
     gt = ds.GetGeoTransform()
     #stride = stride_m/gt[1]
     pX = np.arange(0, ds.RasterXSize, stride)
@@ -1450,6 +1520,8 @@ def get_xy_grids(ds, stride=1, getval=False):
     return mX, mY
 
 def fitPlaneSVD(XYZ):
+    """Fit a plane to input point data using SVD
+    """
     [rows,cols] = XYZ.shape
     # Set up constraint equations of the form  AB = 0,
     # where B is a column vector of the plane coefficients
@@ -1463,6 +1535,8 @@ def fitPlaneSVD(XYZ):
     return coeff 
 
 def fitPlaneLSQ(XYZ):
+    """Fit a plane to input point data using LSQ
+    """
     [rows,cols] = XYZ.shape
     G = np.ones((rows,3))
     G[:,0] = XYZ[:,0]  #X
@@ -1472,6 +1546,8 @@ def fitPlaneLSQ(XYZ):
     return coeff
 
 def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
+    """Fit a plane to values in input array
+    """
     if gt is None:
         gt = [0, 1, 0, 0, 0, -1] 
     x, y = get_xy_ma(bma, gt, origmask=origmask)
@@ -1493,6 +1569,8 @@ def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     return vals, resid, coeff
 
 def ds_fitplane(ds):
+    """Fit a plane to values in GDAL Dataset
+    """
     from pygeotools.lib import iolib
     bma = iolib.ds_getma(ds)
     gt = ds.GetGeoTransform()
@@ -1500,6 +1578,8 @@ def ds_fitplane(ds):
 
 #The following were moved from proj_select.py
 def getUTMzone(geom):
+    """Determine UTM Zone for input geometry
+    """
     #If geom has srs properly defined, can do this
     #geom.TransformTo(wgs_srs)
     #Get centroid lat/lon
@@ -1535,6 +1615,8 @@ def getUTMsrs(geom):
 
 #Want to overload this to allow direct coordinate input, create geom internally
 def get_proj(geom, proj_list=None):
+    """Determine best projection for input geometry
+    """
     out_srs = None
     if proj_list is None:
         proj_list = gen_proj_list()
@@ -1548,8 +1630,11 @@ def get_proj(geom, proj_list=None):
         out_srs = getUTMsrs(geom)
     return out_srs
 
-#Object containing bbox geom and srs
 class ProjBox:
+    """Object containing bbox geom and srs
+
+    Used for automatic projection determination
+    """
     def __init__(self, bbox, epsg):
         self.bbox = bbox
         self.geom = bbox2geom(bbox)
@@ -1558,6 +1643,8 @@ class ProjBox:
 
 #This provides a preference order for projections
 def gen_proj_list():
+    """Create list of projections with cascading preference
+    """
     #Eventually, just read this in from a text file
     proj_list = []
     #Alaska
@@ -1589,6 +1676,8 @@ def bbox2geom(bbox, t_srs=None):
     return geom
 
 def xy2geom(x, y, t_srs=None):
+    """Convert x and y point coordinates to geom
+    """
     geom_wkt = 'POINT({0} {1})'.format(x, y)
     geom = ogr.CreateGeometryFromWkt(geom_wkt)
     if t_srs is not None and not wgs_srs.IsSame(t_srs):
