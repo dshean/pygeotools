@@ -1474,7 +1474,8 @@ def print_stats(a, full=False):
         #There has to be a better way to compute the mode for a ma
         #mstats.mode returns tuple of (array[mode], array[count])
         a_mode = float(mode(a, axis=None)[0])
-        stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), fast_median(a), mad(a), q[0], q[1], q[2], a_mode, p16, p84, spread) 
+        stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), \
+                fast_median(a), mad(a), q[0], q[1], q[2], a_mode, p16, p84, spread) 
     else:
         ac = a.compressed()
         stride = int(np.around(ac.size / thresh))
@@ -1485,8 +1486,10 @@ def print_stats(a, full=False):
         q = (iqr(ac))
         p16, p84, spread = robust_spread(ac)
         ac_mode = float(mode(ac, axis=None)[0])
-        stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
-    print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
+        stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), \
+                fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
+    print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f\
+    q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
     return stats
 
 def rmse(a):
