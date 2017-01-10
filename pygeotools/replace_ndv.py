@@ -17,6 +17,7 @@ from pygeotools.lib import iolib
 
 def getparser():
     parser = argparse.ArgumentParser(description="Replace raster NoData value")
+    parser.add_argument('-overwrite', action='store_true', help='Overwrite original file')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('new_ndv', type=str, help='New NoData value (e.g., -9999)')
     return parser
@@ -36,7 +37,10 @@ def main():
         new_ndv = float(new_ndv)
 
     #Output filename will have ndv appended
-    out_fn = os.path.splitext(src_fn)[0]+'_ndv.tif'
+    if args.overwrite:
+        out_fn = src_fn
+    else:
+        out_fn = os.path.splitext(src_fn)[0]+'_ndv.tif'
 
     ds = gdal.Open(src_fn)
     b = ds.GetRasterBand(1)
