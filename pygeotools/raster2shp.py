@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
-#David Shean
-#dshean@gmail.com
+"""
+Utility to create shp footprints for a list of input raster(s)
 
-#Little utility to create footprints for a list of input raster(s)
+"""
 
 #To do:
 #Update to use kml
