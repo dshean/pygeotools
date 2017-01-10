@@ -1,5 +1,5 @@
 lib submodules 
-===========
+==============
 
 .. toctree::
    :maxdepth: 2
