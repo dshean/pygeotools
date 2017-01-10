@@ -419,6 +419,8 @@ def image_check(fn):
     return status
 
 def cpu_count():
+    """Return system CPU count
+    """
     from multiprocessing import cpu_count
     return cpu_count()
 
@@ -432,3 +434,64 @@ def get_datadir():
     if not os.path.exists(datadir):
         os.makedirs(datadir)
     return datadir
+
+#Function to get files using urllib
+#This works with ftp
+def getfile(url, outdir=None):
+    """Function to fetch files using urllib
+
+    Works with ftp
+
+    """
+    fn = os.path.split(url)[-1]
+    if outdir is not None:
+        fn = os.path.join(outdir, fn)
+    if not os.path.exists(fn):
+        #Find appropriate urlretrieve for Python 2 and 3
+        try:
+            from urllib.request import urlretrieve
+        except ImportError:
+            from urllib import urlretrieve 
+        print("Retrieving: %s" % url)
+        #Add progress bar
+        urlretrieve(url, fn)
+    return fn
+
+#Function to get files using requests
+#Works with https authentication
+def getfile2(url, auth=None, outdir=None):
+    """Function to fetch files using requests
+
+    Works with https authentication
+
+    """
+    import requests
+    print("Retrieving: %s" % url)
+    fn = os.path.split(url)[-1]
+    if outdir is not None:
+        fn = os.path.join(outdir, fn)
+    if auth is not None:
+        r = requests.get(url, stream=True, auth=auth)
+    else:
+        r = requests.get(url, stream=True)
+    chunk_size = 1000000
+    with open(fn, 'wb') as fd:
+        for chunk in r.iter_content(chunk_size):
+            fd.write(chunk)
+
+#Get necessary credentials to access MODSCAG products - hopefully this will soon be archived with NSIDC 
+def get_auth():
+    """Get authorization token for https
+    """
+    import getpass
+    from requests.auth import HTTPDigestAuth
+    #This binds raw_input to input for Python 2
+    try:
+       input = raw_input
+    except NameError:
+       pass
+    uname = input("MODSCAG Username:")
+    pw = getpass.getpass("MODSCAG Password:")
+    auth = HTTPDigestAuth(uname, pw)
+    #wget -A'h8v4*snow_fraction.tif' --user=uname --password=pw
+    return auth
