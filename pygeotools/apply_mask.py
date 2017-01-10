@@ -21,6 +21,7 @@ def getparser():
     #Should add support for similar arguments as in warplib - arbitrary extent, res, etc
     parser.add_argument('-extent', type=str, default='raster', choices=['raster','mask','intersection','union'], \
                         help='Desired output extent')
+    parser.add_argument('-invert', action='store_true', help='Invert input mask')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('mask_fn', type=str, help='Input mask filename (can be existing raster with ndv, or binary mask)')
     return parser
@@ -65,6 +66,9 @@ def main():
     #Add dilation step for buffer
 
     #newmask = np.logical_or(np.ma.getmaskarray(src_ma_full), mask)
+
+    if args.invert:
+        mask = ~(mask)
 
     print("Creating new array with updated mask")
     src_ma_full = np.ma.array(src_ma_full, mask=mask)
