@@ -9,7 +9,6 @@ import time
 
 import numpy as np
 import matplotlib.dates
-import dateutil.parser
 
 #Seconds per year
 spy = 86400.*365.25
@@ -71,6 +70,7 @@ def strptime_fuzzy(s):
 
     Note: this returns current date if not found. If only year is provided, will return current month, day
     """
+    import dateutil.parser
     dt = dateutil.parser.parse(str(s), fuzzy=True) 
     return dt 
 
