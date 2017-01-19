@@ -15,11 +15,12 @@ mem_drv = gdal.GetDriverByName('MEM')
 gtif_drv = gdal.GetDriverByName('GTiff')
 vrt_drv = gdal.GetDriverByName("VRT")
 
+#Default GDAL creation options
 gdal_opt = ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
-"""Default GDAL creation options
-
-"""
 #gdal_opt += ['BLOCKXSIZE=1024', 'BLOCKYSIZE=1024']
+#List that can be used for building commands
+gdal_opt_co = []
+[gdal_opt_co.extend(('-co', i)) for i in gdal_opt]
 
 #Add methods to load ma from OpenCV, PIL, etc.
 #These formats should be directly readable as np arrays
