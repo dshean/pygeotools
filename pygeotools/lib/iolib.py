@@ -296,7 +296,7 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
     #Otherwise, use Create
     else:
         a_dtype = a.dtype
-        gdal_dtype = np_gdal_dtype(a_dtype)
+        gdal_dtype = np2gdal_dtype(a_dtype)
         if a_dtype.name == 'bool':
             #Set ndv to 0
             a.fill_value = False
@@ -318,18 +318,47 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
 
 #Move to geolib?
 #Look up equivalent GDAL data type
-def np_gdal_dtype(d):
+def np2gdal_dtype(d):
+    """
+    Get GDAL RasterBand datatype that corresponds with NumPy datatype
+    Input should be numpy array or numpy dtype
+    """
     dt_dict = gdal_array.codes        
-    if not isinstance(d, np.dtype):
-        d = np.dtype(d)
-    if d.name == 'int8':
-        gdal_dt = 1
-    elif d.name == 'bool':
-        #Write out as Byte
-        gdal_dt = 1 
+    if isinstance(d, (np.ndarray, np.generic)):
+        d = d.dtype
+    #This creates dtype from another built-in type
+    #d = np.dtype(d)
+    if isinstance(d, np.dtype):
+        if d.name == 'int8':
+            gdal_dt = 1
+        elif d.name == 'bool':
+            #Write out as Byte
+            gdal_dt = 1 
+        else:
+            gdal_dt = list(dt_dict.keys())[list(dt_dict.values()).index(d)]
     else:
-        gdal_dt = list(dt_dict.keys())[list(dt_dict.values()).index(d)]
+        print("Input must be NumPy array or NumPy dtype")
+        gdal_dt = None
     return gdal_dt
+
+def gdal2np_dtype(b):
+    """
+    Get NumPy datatype that corresponds with GDAL RasterBand datatype
+    Input can be filename, GDAL Dataset, GDAL RasterBand, or GDAL integer dtype
+    """
+    dt_dict = gdal_array.codes
+    if isinstance(b, str):
+        b = gdal.Open(b)
+    if isinstance(b, gdal.Dataset):
+        b = b.GetRasterBand(1)
+    if isinstance(b, gdal.Band):
+        b = b.DataType
+    if isinstance(b, int):
+        np_dtype = dt_dict[b]
+    else:
+        np_dtype = None
+        print("Input must be GDAL Dataset or RasterBand object")
+    return np_dtype
 
 #Replace nodata value in GDAL band
 def replace_ndv(b, new_ndv):
