@@ -47,9 +47,12 @@ def main():
 
     src_ds, mask_ds = warplib.memwarp_multi_fn([src_fn, mask_fn], res='first', extent=extent, t_srs='first')
 
+    print("Loading src array")
     src_ma_full = iolib.ds_getma(src_ds)
+    print("Loading mask array")
     mask_ma_full = iolib.ds_getma(mask_ds)
 
+    print("Extracting mask")
     if mask_ma_full.std() != 0:
         #Input mask filename is a raster, or other masked array
         #Just need to extract mask
@@ -68,6 +71,7 @@ def main():
     #newmask = np.logical_or(np.ma.getmaskarray(src_ma_full), mask)
 
     if args.invert:
+        print("Inverting mask")
         mask = ~(mask)
 
     print("Creating new array with updated mask")
@@ -75,7 +79,7 @@ def main():
 
     src_fn_masked = os.path.splitext(src_fn)[0]+'_masked.tif'
     print("Writing out masked version of input raster: %s" % src_fn_masked )
-    iolib.writeGTiff(src_ma_full, src_fn_masked, src_ds, create=True, sparse=True)
+    iolib.writeGTiff(src_ma_full, src_fn_masked, src_ds, create=True)
 
 if __name__ == '__main__':
     main()
