@@ -346,8 +346,10 @@ def parse_extent(extent, src_ds_list, t_srs=None):
             extent = None
         elif extent == 'first':
             extent = geolib.ds_geom_extent(src_ds_list[0], t_srs=t_srs)
+            #extent = geolib.ds_extent(src_ds_list[0], t_srs=t_srs)
         elif extent == 'last':
             extent = geolib.ds_geom_extent(src_ds_list[-1], t_srs=t_srs)
+            #extent = geolib.ds_extent(src_ds_list[-1], t_srs=t_srs)
         elif extent == 'intersection':
             #By default, compute_intersection takes ref_srs from ref_ds
             extent = geolib.ds_geom_intersection_extent(src_ds_list, t_srs=t_srs)
@@ -369,7 +371,7 @@ def parse_extent(extent, src_ds_list, t_srs=None):
         extent = [float(i) for i in extent.split(' ')]
     return extent
 
-def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None, dst_ndv=None):
+def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None, dst_ndv=None, verbose=False):
     """This parses and checks inputs, then calls desired warp function with appropriate arguments for each input ds
     
     Parameters
@@ -390,6 +392,8 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         Desired output directory (for disk warp)
     dst_ndv : float
         Desired output NoData Value
+    verbose : bool 
+        Print extra information for debugging purposes
 
     Returns
     -------
@@ -421,27 +425,40 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
             fn = fn_list[0]
         print("%i of %i: %s" % (i+1, len(src_ds_list), fn))
 
-        #Extract info from ds to see if warp is necessary
-        ds_res = geolib.get_res(ds, square=True)[0]
-        ds_extent = geolib.ds_extent(ds)
+        #If input srs are different, must warp
         ds_t_srs = geolib.get_ds_srs(ds)
+        srscheck = bool(t_srs.IsSame(ds_t_srs))
+       
+        if verbose:
+            print('\n%s' % ds_t_srs.ExportToWkt())
+            print('%s\n' % t_srs.ExportToWkt())
+            print('srscheck: %s\n' % srscheck)
 
-        #Debug
-        #print ds_res, ds_extent
-        #print res, extent
+        rescheck = False
+        extentcheck = False
+        if srscheck:
+            #Extract info from ds to see if warp is necessary
+            ds_res = geolib.get_res(ds, square=True)[0]
+            ds_extent = geolib.ds_extent(ds)
 
-        #Note: these checks necessary to handle rounding and precision issues
-        rescheck=False
-        if res is None or geolib.res_compare(res, ds_res):
-            rescheck=True
-        extentcheck=False
-        if extent is None or geolib.extent_compare(extent, ds_extent):
-            extentcheck=True
-        srscheck=False
-        if (t_srs.IsSame(ds_t_srs)):
-            srscheck=True
-           
-        #If the ds passes all three, it's identical to desired output, short circuit
+            #Note: these checks necessary to handle rounding and precision issues
+            #Round extent and res to nearest mm
+            precision = 1E-3
+            #Or if t_srs has units of degrees
+            if ds_t_srs.IsGeographic():
+                precision = 1E-8
+
+            rescheck = (res is None) or geolib.res_compare(res, ds_res, precision=precision)
+            extentcheck = (extent is None) or geolib.extent_compare(extent, ds_extent, precision=precision)
+
+        if verbose:
+            print('\n%s, %s\n' % (ds_res, res)) 
+            print('%s' % ds_extent)
+            print('%s\n' % extent) 
+            print('rescheck: %s' % rescheck)
+            print('extentcheck: %s\n' % extentcheck)
+
+        #If the ds passes all three, it is identical to desired output, short circuit
         if rescheck and extentcheck and srscheck:
             out_ds_list.append(ds)
         else:
