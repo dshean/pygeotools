@@ -1290,35 +1290,49 @@ def geom2mask(geom, ds):
     mask = np.array(img).astype(bool)
     return ~mask
 
-#These gdaldem functions should be able to ingest masked array
-#Just write out temporary file, or maybe mem vrt?
-#NOTE: probably want to smooth input DEM here!
-def gdaldem_wrapper(fn, product='hs'):
-    import subprocess
-    out_fn = os.path.splitext(fn)[0]+'_%s.tif' % product
+def gdaldem_wrapper(fn, product='hs', returnma=True):
+    """Wrapper for gdaldem functions
+
+    Note: gdaldem is directly avaialable through API as of GDAL v2.1
+
+    https://trac.osgeo.org/gdal/wiki/rfc59.1_utilities_as_a_library
+
+    This function is no longer necessry, and will eventually be removed.
+    """
+    #These gdaldem functions should be able to ingest masked array
+    #Just write out temporary file, or maybe mem vrt?
+    valid_opt = ['hillshade', 'hs', 'slope', 'aspect', 'color-relief', 'TRI', 'TPI', 'roughness']
     try:
         open(fn)
     except IOError:
         print("Unable to open %s" %fn)
 
-    valid_opt = ['hillshade', 'hs', 'slope', 'aspect', 'color-relief', 'TRI', 'TPI', 'roughness']
+    if product not in valid_opt: 
+        print("Invalid gdaldem option specified")
+
+    import subprocess
+    from pygeotools.lib import iolib
     bma = None
     opts = []
-    if product in valid_opt: 
-        if product == 'hs':
-            product = 'hillshade'
-            opts = ['-compute_edges',]
-        cmd = ['gdaldem', product]
-        cmd.extend(opts)
-        cmd.extend([fn, out_fn])
-        print(' '.join(cmd))
-        subprocess.call(cmd, shell=False)
-        ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
-        from pygeotools.lib import iolib
-        bma = iolib.ds_getma(ds, 1)
+    if product == 'hs' or product == 'hillshade':
+        product = 'hillshade'
+        #opts = ['-compute_edges',]
+        out_fn = os.path.splitext(fn)[0]+'_hs_az315.tif'
     else:
-        print("Invalid gdaldem option specified")
-    return bma 
+        out_fn = os.path.splitext(fn)[0]+'_%s.tif' % product
+    cmd = ['gdaldem', product]
+    cmd.extend(opts)
+    cmd.extend(iolib.gdal_opt_co)
+    cmd.extend([fn, out_fn])
+    print(' '.join(cmd))
+    subprocess.call(cmd, shell=False)
+
+    if returnma:
+        ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
+        bma = iolib.ds_getma(ds, 1)
+        return bma 
+    else:
+        return out_fn
 
 def gdaldem_slope(fn):
     return gdaldem_wrapper(fn, 'slope')
