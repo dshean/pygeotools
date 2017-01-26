@@ -1009,10 +1009,43 @@ def ds_IsEmpty(ds):
     #       break
     return out
 
-def ds_extent(ds, t_srs=None):
-    """Return min/max extent of dataset
+def gt_corners(gt, nx, ny):
+    """Get corner coordinates based on input geotransform and raster dimensions
+   """
+    ul = [gt[0], gt[3]]
+    ll = [gt[0], gt[3] + (gt[5] * ny)]
+    ur = [gt[0] + (gt[1] * nx), gt[3]]
+    lr = [gt[0] + (gt[1] * nx), gt[3] + (gt[5] * ny)]
+    return ul, ll, ur, lr
 
-    xmin, xmax, ymin, ymax
+"""
+Notes on extent format:
+gdalwarp uses '-te xmin ymin xmax ymax'
+gdalbuildvrt uses '-te xmin ymin xmax ymax'
+gdal_translate uses '-projwin ulx uly lrx lry' or '-projwin xmin ymax xmax ymin'
+
+These functions should all use 'xmin ymin xmax ymax' for extent, unless otherwise specified
+"""
+
+def corner_extent(ul, ll, ur, lr): 
+    """Get min/max extent based on corner coord
+    """
+    xmin = min(ul[0], ll[0], ur[0], lr[0])
+    xmax = max(ul[0], ll[0], ur[0], lr[0])
+    ymin = min(ul[1], ll[1], ur[1], lr[1])
+    ymax = max(ul[1], ll[1], ur[1], lr[1])
+    extent = [xmin, ymin, xmax, ymax]
+    return extent
+    
+#This is called by malib.DEM_stack, where we don't necessarily have a ds
+def gt_extent(gt, nx, ny):
+    extent = corner_extent(*gt_corners(gt, nx, ny))
+    return extent 
+
+def ds_extent(ds, t_srs=None):
+    """Return min/max extent of dataset based on corner coordinates
+
+    xmin, ymin, xmax, ymax
 
     If t_srs is specified, output will be converted to specified srs
     """
@@ -1032,45 +1065,22 @@ def ds_extent(ds, t_srs=None):
     extent = corner_extent(ul, ll, ur, lr)
     return extent 
 
-def gt_corners(gt, nx, ny):
-    """Get corner coordinates based on input geotransform and raster dimensions
-    """
-    ul = [gt[0], gt[3]]
-    ll = [gt[0], gt[3] + (gt[5] * ny)]
-    ur = [gt[0] + (gt[1] * nx), gt[3]]
-    lr = [gt[0] + (gt[1] * nx), gt[3] + (gt[5] * ny)]
-    return ul, ll, ur, lr
-
-def corner_extent(ul, ll, ur, lr): 
-    """Get min/max extent based on corner coord
-    """
-    xmin = min(ul[0], ll[0], ur[0], lr[0])
-    xmax = max(ul[0], ll[0], ur[0], lr[0])
-    ymin = min(ul[1], ll[1], ur[1], lr[1])
-    ymax = max(ul[1], ll[1], ur[1], lr[1])
-    extent = [xmin, ymin, xmax, ymax]
-    return extent
-    
-#This is called by malib.DEM_stack, where we don't necessarily have a ds
-def gt_extent(gt, nx, ny):
-    extent = corner_extent(*gt_corners(gt, nx, ny))
-    return extent 
-
-#Need to test with noninteger res
-def nround(x, base=1):
-    return int(base * round(float(x)/base))
+#This rounds to nearest multiple of a
+def round_nearest(x, a):
+    return round(round(x / a) * a, -int(np.floor(np.log10(a))))
 
 #Round extents to nearest pixel
 #Should really pad these outward rather than round
-def extent_round(extent, res=1.0):
+def extent_round(extent, precision=1E-3):
     #Should force initial stack reation to multiples of res
-    extent_round = [nround(i, res) for i in extent]
-    #Check that bounds are within existing extent
-    extent_round[0] = max(extent[0], extent_round[0])
-    extent_round[1] = max(extent[1], extent_round[1])
-    extent_round[2] = min(extent[2], extent_round[2])
-    extent_round[3] = min(extent[3], extent_round[3])
-    return extent_round
+    extround = [round_nearest(i, precision) for i in extent]
+    #Check that bounds are still within original extent
+    if False:
+        extround[0] = max(extent[0], extround[0])
+        extround[1] = max(extent[1], extround[1])
+        extround[2] = min(extent[2], extround[2])
+        extround[3] = min(extent[3], extround[3])
+    return extround
 
 def ds_geom(ds, t_srs=None):
     """Return dataset bbox envelope as geom
@@ -1101,7 +1111,6 @@ def geom_extent(geom):
     return [env[0], env[2], env[1], env[3]]
 
 #Compute dataset extent using geom
-#This is cleaner than the approach above
 def ds_geom_extent(ds, t_srs=None):
     geom = ds_geom(ds, t_srs)
     return geom_extent(geom)
@@ -1110,7 +1119,6 @@ def ds_geom_extent(ds, t_srs=None):
 def pt_within_extent(x, y, extent):
     xmin, ymin, xmax, ymax = extent
     idx = ((x >= xmin) & (x <= xmax) & (y >= ymin) & (y <= ymax)) 
-    #return x[idx], y[idx]
     return idx
 
 #Pad extent
@@ -1122,13 +1130,6 @@ def pad_extent(extent, perc=0.1, uniform=False):
     if uniform:
         dx = dy = np.mean([dx, dy])
     return e + (perc * np.array([-dx, -dy, dx, dy]))
-
-"""
-Extent notes:
-gdalwarp uses '-te xmin ymin xmax ymax'
-gdalbuildvrt uses '-te xmin ymin xmax ymax'
-gdal_translate uses '-projwin ulx uly lrx lry' or '-projwin xmin ymax xmax ymin'
-"""
 
 #What happens if input geom have different t_srs???
 #Add option to return envelope, don't need additional functions to do this
@@ -1213,15 +1214,19 @@ def ds_geom_intersection_extent(ds_list, **kwargs):
     return intsect
 
 #This is necessary because extent precision is different
-def extent_compare(e1, e2):
-    e1_f = '%0.6f %0.6f %0.6f %0.6f' % tuple(e1)
-    e2_f = '%0.6f %0.6f %0.6f %0.6f' % tuple(e2)
+def extent_compare(e1, e2, precision=1E-3):
+    #e1_f = '%0.6f %0.6f %0.6f %0.6f' % tuple(e1)
+    #e2_f = '%0.6f %0.6f %0.6f %0.6f' % tuple(e2)
+    e1_f = extent_round(e1, precision)
+    e2_f = extent_round(e2, precision)
     return e1_f == e2_f
 
 #This is necessary because extent precision is different
-def res_compare(r1, r2):
-    r1_f = '%0.6f' % r1
-    r2_f = '%0.6f' % r2
+def res_compare(r1, r2, precision=1E-3):
+    #r1_f = '%0.6f' % r1
+    #r2_f = '%0.6f' % r2
+    r1_f = round_nearest(r1, precision) 
+    r2_f = round_nearest(r2, precision) 
     return r1_f == r2_f
 
 #Clip raster by shape
