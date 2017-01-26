@@ -141,7 +141,9 @@ def b_getma(b):
         Masked array containing raster values
     """
     b_ndv = get_ndv_b(b)
-    bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
+    #bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
+    #This is more appropriate for float, handles precision issues
+    bma = np.ma.masked_values(b.ReadAsArray(), b_ndv)
     return bma
 
 def get_sub_dim(src_ds, scale=None, maxdim=1024):
@@ -208,7 +210,7 @@ def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
     ns, nl = get_sub_dim(src_ds, scale, maxdim)
     #The buf_size parameters determine the final array dimensions
     b_array = b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)
-    bma = np.ma.masked_equal(b_array, b_ndv)
+    bma = np.ma.masked_values(b_array, b_ndv)
     return bma
 
 #Note: need to consolidate with warplib.writeout (takes ds, not ma)
@@ -364,7 +366,7 @@ def gdal2np_dtype(b):
 #Replace nodata value in GDAL band
 def replace_ndv(b, new_ndv):
     b_ndv = get_ndv_b(b)    
-    bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
+    bma = np.ma.masked_values(b.ReadAsArray(), b_ndv)
     bma.set_fill_value(new_ndv)
     b.WriteArray(bma.filled())
     b.SetNoDataValue(new_ndv)
