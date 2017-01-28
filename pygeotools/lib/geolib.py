@@ -102,7 +102,7 @@ hma_aea_srs.ImportFromProj4(hma_aea_proj)
 #CONUS bounds 36, 49, -105, -124
 conus_aea_srs = osr.SpatialReference()
 conus_aea_proj = '+proj=aea +lat_1=36 +lat_2=49 +lat_0=43 +lon_0=-115 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
-conus_aea_srs.ImportFromProj4(hma_aea_proj)
+conus_aea_srs.ImportFromProj4(conus_aea_proj)
 
 #To do for transformations below:
 #Check input order of lon, lat
@@ -662,7 +662,8 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     """
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
-    shp_extent = lyr.GetExtent()
+    #This returns xmin, ymin, xmax, ymax
+    shp_extent = lyr_extent(lyr)
     shp_srs = lyr.GetSpatialRef()
     # dst_dt = gdal.GDT_Byte
     ndv = 0
@@ -711,6 +712,8 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     """Clip an input raster by input polygon shapefile for given extent
 
     """
+    from pygeotools.lib import iolib
+    from pygeotools.lib import warplib
     r_ds = iolib.fn_getds(r_fn)
     r_srs = get_ds_srs(r_ds)
     r_extent = ds_extent(r_ds)
@@ -718,7 +721,8 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
     shp_srs = lyr.GetSpatialRef()
-    shp_extent = lyr.GetExtent()
+    #This returns xmin, ymin, xmax, ymax
+    shp_extent = lyr_extent(lyr)
 
     #Define the output - can set to either raster or shp
     #Accept as cl arg
@@ -730,7 +734,12 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
         out_extent = shp_extent
 
     print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
-    from pygeotools.lib import warplib
+    verbose = False
+    if verbose:
+        print(shp_extent) 
+        print(r_extent)
+        print(out_extent)
+
     r_ds = warplib.memwarp(r_ds, extent=out_extent, t_srs=out_srs, r='cubic')
     r = iolib.ds_getma(r_ds)
 
@@ -1148,6 +1157,12 @@ def ds_geom(ds, t_srs=None):
 def geom_extent(geom):
     #Envelope is ul_x, ur_x, lr_y, ll_y (?)
     env = geom.GetEnvelope()
+    #return xmin, ymin, xmax, ymax 
+    return [env[0], env[2], env[1], env[3]]
+
+def lyr_extent(lyr):
+    #Envelope is ul_x, ur_x, lr_y, ll_y (?)
+    env = lyr.GetExtent()
     #return xmin, ymin, xmax, ymax 
     return [env[0], env[2], env[1], env[3]]
 
