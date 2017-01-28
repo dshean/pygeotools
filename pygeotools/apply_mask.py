@@ -12,6 +12,7 @@ import sys, os
 import argparse
 
 import numpy as np
+from osgeo import gdal
 
 from pygeotools.lib import iolib
 from pygeotools.lib import warplib
@@ -44,13 +45,18 @@ def main():
         extent = src_fn
     elif extent == 'mask':
         extent = mask_fn
+    else:
+        #This is a hack for intersection computation
+        src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in [src_fn, mask_fn]]
+        #t_srs = geolib.get_ds_srs(src_ds_list[0])
+        extent = warplib.parse_extent(extent, src_ds_list, src_fn)
 
-    src_ds, mask_ds = warplib.memwarp_multi_fn([src_fn, mask_fn], res='first', extent=extent, t_srs='first')
+    print("Warping mask_fn")
+    mask_ds = warplib.memwarp_multi_fn([mask_fn,], res=src_fn, extent=extent, t_srs=src_fn)[0]
 
-    print("Loading src array")
-    src_ma_full = iolib.ds_getma(src_ds)
     print("Loading mask array")
     mask_ma_full = iolib.ds_getma(mask_ds)
+    mask_ds = None
 
     print("Extracting mask")
     if mask_ma_full.std() != 0:
@@ -66,6 +72,9 @@ def main():
         else:
             mask = (mask_ma_full.data).astype(bool)
 
+    #Free up memory
+    mask_ma_full = None
+
     #Add dilation step for buffer
 
     #newmask = np.logical_or(np.ma.getmaskarray(src_ma_full), mask)
@@ -74,8 +83,15 @@ def main():
         print("Inverting mask")
         mask = ~(mask)
 
-    print("Creating new array with updated mask")
-    src_ma_full = np.ma.array(src_ma_full, mask=mask)
+    print("Loading src array and applying updated mask")
+    if extent == src_fn:
+        src_ds = gdal.Open(src_fn)
+    else:
+        src_ds = warplib.memwarp_multi_fn([src_fn,], res=src_fn, extent=extent, t_srs=src_fn)[0]
+
+    #Now load source array with new mask
+    src_ma_full = np.ma.array(iolib.ds_getma(src_ds), mask=mask)
+    mask = None
 
     src_fn_masked = os.path.splitext(src_fn)[0]+'_masked.tif'
     print("Writing out masked version of input raster: %s" % src_fn_masked )
