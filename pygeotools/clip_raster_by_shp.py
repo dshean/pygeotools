@@ -17,36 +17,6 @@ from osgeo import ogr
 
 from pygeotools.lib import iolib
 from pygeotools.lib import geolib
-from pygeotools.lib import warplib 
-
-def raster_shpclip(r_fn, shp_fn, extent='raster'):
-    r_ds = iolib.fn_getds(r_fn)
-    r_srs = geolib.get_ds_srs(r_ds)
-    r_extent = geolib.ds_extent(r_ds)
-
-    shp_ds = ogr.Open(shp_fn)
-    lyr = shp_ds.GetLayer()
-    shp_srs = lyr.GetSpatialRef()
-    shp_extent = lyr.GetExtent()
-
-    #Define the output - can set to either raster or shp
-    #Accept as cl arg
-    out_srs = r_srs
-
-    if extent == 'raster':
-        out_extent = r_extent 
-    elif extent == 'shp':
-        out_extent = shp_extent
-
-    print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
-    #r = iolib.ds_getma(r_ds)
-    r_ds = warplib.memwarp(r_ds, extent=out_extent, t_srs=out_srs, r='cubic')
-    r = iolib.ds_getma(r_ds)
-
-    mask = geolib.shp2array(shp_fn, r_ds)
-
-    r = np.ma.array(r, mask=mask)
-    return r
 
 def getparser():
     parser = argparse.ArgumentParser(description="Clip input raster by input shp polygons")
@@ -79,7 +49,7 @@ def main():
     extent=args.extent
 
     #Do the clipping
-    r = raster_shpclip(r_fn, shp_fn, extent)
+    r = geolib.raster_shpclip(r_fn, shp_fn, extent)
 
     #Write out
     out_fn = os.path.splitext(r_fn)[0]+'_shpclip.tif'
