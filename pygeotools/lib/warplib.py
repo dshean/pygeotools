@@ -245,22 +245,27 @@ def parse_t_srs(t_srs, src_ds_list=None):
     t_srs : osr.SpatialReference() object
         Output spatial reference system
     """
-    if t_srs == 'first' and src_ds_list is not None:
-        t_srs = geolib.get_ds_srs(src_ds_list[0])
-    elif t_srs == 'last' and src_ds_list is not None:
-        t_srs = geolib.get_ds_srs(src_ds_list[-1])
-    #elif t_srs == 'source':
-    #    t_srs = None 
-    elif isinstance(t_srs, osr.SpatialReference): 
-        pass
-    elif isinstance(t_srs, gdal.Dataset):
-        t_srs = geolib.get_ds_srs(t_srs)
-    elif isinstance(t_srs, str) and os.path.exists(t_srs): 
-        t_srs = geolib.get_ds_srs(gdal.Open(t_srs))
+    if t_srs is None and src_ds_list is None:
+        print("Input t_srs and src_ds_list are both None")
     else:
-        temp = osr.SpatialReference()
-        temp.ImportFromProj4(t_srs)
-        t_srs = temp
+        if t_srs is None:
+            t_srs = 'first'
+        if t_srs == 'first' and src_ds_list is not None:
+            t_srs = geolib.get_ds_srs(src_ds_list[0])
+        elif t_srs == 'last' and src_ds_list is not None:
+            t_srs = geolib.get_ds_srs(src_ds_list[-1])
+        #elif t_srs == 'source':
+        #    t_srs = None 
+        elif isinstance(t_srs, osr.SpatialReference): 
+            pass
+        elif isinstance(t_srs, gdal.Dataset):
+            t_srs = geolib.get_ds_srs(t_srs)
+        elif isinstance(t_srs, str) and os.path.exists(t_srs): 
+            t_srs = geolib.get_ds_srs(gdal.Open(t_srs))
+        else:
+            temp = osr.SpatialReference()
+            temp.ImportFromProj4(t_srs)
+            t_srs = temp
     return t_srs
 
 def parse_res(res, src_ds_list=None, t_srs=None):
@@ -283,8 +288,7 @@ def parse_res(res, src_ds_list=None, t_srs=None):
     """
     #Default to using first t_srs for res calculations
     #Assumes src_ds_list is not None
-    if t_srs is None:
-        t_srs = parse_t_srs('first', src_ds_list)
+    t_srs = parse_t_srs(t_srs, src_ds_list)
 
     #Valid strings
     res_str_list = ['first', 'last', 'min', 'max', 'mean', 'med']
@@ -335,8 +339,7 @@ def parse_extent(extent, src_ds_list, t_srs=None):
     """
     #Default to using first t_srs for extent calculations
     #Assumes src_ds_list is not None
-    if t_srs is None:
-        t_srs = parse_t_srs('first', src_ds_list)
+    t_srs = parse_t_srs(t_srs, src_ds_list)
 
     #Valid strings
     extent_str_list = ['first', 'last', 'intersection', 'union']
