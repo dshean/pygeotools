@@ -47,7 +47,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     res : float
         Desired output resolution
     extent : list of float
-        Desired output extent
+        Desired output extent in t_srs coordinate system
     t_srs : osr.SpatialReference()
         Desired output spatial reference
     r : str
@@ -93,33 +93,14 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     #elif src_res >= res:
     #    gra = gdal.GRA_Bilinear
 
+    gra = parse_rs_alg(r)
+
     #At this point, the resolution and extent values must be float
     #Extent must be list
     res = float(res)
     extent = [float(i) for i in extent]
 
     #Might want to move this to memwarp_multi, keep memwarp basic w/ gdal.GRA types
-
-    #Note:GRA_CubicSpline created huge block artifacts for the St. Helen's compute_dh WV cases
-    #Stick with CubicSpline for both upsampling/downsampling for now
-    if r == 'near':
-        #Note: Nearest respects nodata when downsampling
-        gra = gdal.GRA_NearestNeighbour
-    elif r == 'bilinear':
-        gra = gdal.GRA_Bilinear
-    elif r == 'cubic':
-        gra = gdal.GRA_Cubic
-    elif r == 'cubicspline':
-        gra = gdal.GRA_CubicSpline
-    elif r == 'average':
-        gra = gdal.GRA_Average
-    elif r == 'lanczos':
-        gra = gdal.GRA_Lanczos
-    elif r == 'mode':
-        #Note: Mode respects nodata when downsampling, but very slow
-        gra = gdal.GRA_Mode
-    else:
-        sys.exit("Invalid resampling method")
 
     #Create progress function
     prog_func = gdal.TermProgress
@@ -212,7 +193,7 @@ def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None, dst_n
     """Helper function that calls warp for single input Dataset with output to memory (GDAL Memory Driver)
     """
     driver = iolib.mem_drv
-    return warp(src_ds, res, extent, t_srs, r, driver, dst_ndv=dst_ndv)
+    return warp(src_ds, res, extent, t_srs, r, driver=driver, dst_ndv=dst_ndv)
 
 #Use this to warp directly to output file - no need to write to memory then CreateCopy 
 def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None, dst_ndv=None):
@@ -229,6 +210,32 @@ def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, 
     #Now reopen ds from disk
     dst_ds = gdal.Open(dst_fn)
     return dst_ds
+
+def parse_rs_alg(r):
+    """Parse resampling algorithm
+    """
+    #Note:GRA_CubicSpline created huge block artifacts for the St. Helen's compute_dh WV cases
+    #Stick with CubicSpline for both upsampling/downsampling for now
+    if r == 'near':
+        #Note: Nearest respects nodata when downsampling
+        gra = gdal.GRA_NearestNeighbour
+    elif r == 'bilinear':
+        gra = gdal.GRA_Bilinear
+    elif r == 'cubic':
+        gra = gdal.GRA_Cubic
+    elif r == 'cubicspline':
+        gra = gdal.GRA_CubicSpline
+    elif r == 'average':
+        gra = gdal.GRA_Average
+    elif r == 'lanczos':
+        gra = gdal.GRA_Lanczos
+    elif r == 'mode':
+        #Note: Mode respects nodata when downsampling, but very slow
+        gra = gdal.GRA_Mode
+    else:
+        gra = None
+        sys.exit("Invalid resampling method")
+    return gra
 
 def parse_t_srs(t_srs, src_ds_list=None):
     """Parse arbitrary input t_srs
@@ -439,20 +446,21 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
 
         rescheck = False
         extentcheck = False
-        if srscheck:
-            #Extract info from ds to see if warp is necessary
-            ds_res = geolib.get_res(ds, square=True)[0]
-            ds_extent = geolib.ds_extent(ds)
 
-            #Note: these checks necessary to handle rounding and precision issues
-            #Round extent and res to nearest mm
-            precision = 1E-3
-            #Or if t_srs has units of degrees
-            if ds_t_srs.IsGeographic():
-                precision = 1E-8
+        #if srscheck:
+        #Extract info from ds to see if warp is necessary
+        ds_res = geolib.get_res(ds, square=True)[0]
+        ds_extent = geolib.ds_extent(ds)
 
-            rescheck = (res is None) or geolib.res_compare(res, ds_res, precision=precision)
-            extentcheck = (extent is None) or geolib.extent_compare(extent, ds_extent, precision=precision)
+        #Note: these checks necessary to handle rounding and precision issues
+        #Round extent and res to nearest mm
+        precision = 1E-3
+        #Or if t_srs has units of degrees
+        if ds_t_srs.IsGeographic():
+            precision = 1E-8
+
+        rescheck = (res is None) or geolib.res_compare(res, ds_res, precision=precision)
+        extentcheck = (extent is None) or geolib.extent_compare(extent, ds_extent, precision=precision)
 
         if verbose:
             print('\n%s, %s\n' % (ds_res, res)) 
@@ -470,33 +478,33 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
 
     return out_ds_list
 
-def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic'):
+def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False):
     """Helper function for memwarp of multiple input GDAL Datasets
     """
-    return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=memwarp)
+    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=memwarp)
 
-def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic'):
+def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False):
     """Helper function for memwarp of multiple input filenames
     """
     #Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
-    return memwarp_multi(src_ds_list, res, extent, t_srs, r)
+    return memwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose)
 
-def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None, dst_ndv=None):
+def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False, outdir=None, dst_ndv=None):
     """Helper function for diskwarp of multiple input GDAL Datasets
     """
-    return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=diskwarp, outdir=outdir, dst_ndv=dst_ndv)
+    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=diskwarp, outdir=outdir, dst_ndv=dst_ndv)
 
-def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', outdir=None, dst_ndv=None):
+def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False, outdir=None, dst_ndv=None):
     """Helper function for diskwarp of multiple input filenames
     """
     #Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
-    return diskwarp_multi(src_ds_list, res, extent, t_srs, r, outdir=outdir, dst_ndv=dst_ndv)
+    return diskwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, outdir=outdir, dst_ndv=dst_ndv)
 
 def writeout(ds, outfn):
     """Write ds to disk
