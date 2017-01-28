@@ -98,6 +98,12 @@ hma_aea_srs = osr.SpatialReference()
 hma_aea_proj = '+proj=aea +lat_1=25 +lat_2=47 +lat_0=36 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
 hma_aea_srs.ImportFromProj4(hma_aea_proj)
 
+#CONUS projection
+#CONUS bounds 36, 49, -105, -124
+conus_aea_srs = osr.SpatialReference()
+conus_aea_proj = '+proj=aea +lat_1=36 +lat_2=49 +lat_0=43 +lon_0=-115 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
+conus_aea_srs.ImportFromProj4(hma_aea_proj)
+
 #To do for transformations below:
 #Check input order of lon, lat
 #Need to broadcast z=0.0 if z is not specified
