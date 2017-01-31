@@ -237,7 +237,7 @@ def parse_rs_alg(r):
         sys.exit("Invalid resampling method")
     return gra
 
-def parse_t_srs(t_srs, src_ds_list=None):
+def parse_srs(t_srs, src_ds_list=None):
     """Parse arbitrary input t_srs
 
     Parameters
@@ -269,10 +269,19 @@ def parse_t_srs(t_srs, src_ds_list=None):
             t_srs = geolib.get_ds_srs(t_srs)
         elif isinstance(t_srs, str) and os.path.exists(t_srs): 
             t_srs = geolib.get_ds_srs(gdal.Open(t_srs))
-        else:
+        elif isinstance(t_srs, str):
             temp = osr.SpatialReference()
-            temp.ImportFromProj4(t_srs)
+            if 'EPSG' in t_srs.upper():
+                epsgcode = int(t_srs.split(':')[-1])
+                temp.ImportFromEPSG(epsgcode)
+            elif 'proj' in t_srs:
+                temp.ImportFromProj4(t_srs)
+            else:
+                #Assume the user knows what they are doing
+                temp.ImportFromWkt(t_srs)
             t_srs = temp
+        else:
+            t_srs = None
     return t_srs
 
 def parse_res(res, src_ds_list=None, t_srs=None):
@@ -295,7 +304,7 @@ def parse_res(res, src_ds_list=None, t_srs=None):
     """
     #Default to using first t_srs for res calculations
     #Assumes src_ds_list is not None
-    t_srs = parse_t_srs(t_srs, src_ds_list)
+    t_srs = parse_srs(t_srs, src_ds_list)
 
     #Valid strings
     res_str_list = ['first', 'last', 'min', 'max', 'mean', 'med']
@@ -346,7 +355,7 @@ def parse_extent(extent, src_ds_list, t_srs=None):
     """
     #Default to using first t_srs for extent calculations
     #Assumes src_ds_list is not None
-    t_srs = parse_t_srs(t_srs, src_ds_list)
+    t_srs = parse_srs(t_srs, src_ds_list)
 
     #Valid strings
     extent_str_list = ['first', 'last', 'intersection', 'union']
@@ -417,7 +426,7 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
     #t_srs = str(t_srs)
 
     #Parse the input
-    t_srs = parse_t_srs(t_srs, src_ds_list)
+    t_srs = parse_srs(t_srs, src_ds_list)
     res = parse_res(res, src_ds_list, t_srs)
     extent = parse_extent(extent, src_ds_list, t_srs)
 
