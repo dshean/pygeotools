@@ -165,6 +165,8 @@ def sort_fn_list(fn_list):
     return fn_list_sort
 
 def get_dt_list(fn_list):
+    """Get list of datetime objects, extracted from a filename
+    """
     dt_list = np.array([fn_getdatetime(fn) for fn in fn_list])
     return dt_list
 
@@ -218,6 +220,26 @@ def get_dt_bounds_monthyear(dt_list):
 def get_unique_years(dt_list):
     years = [dt.year for dt in dt_list]
     return np.unique(years)
+
+def dt_filter_rel_annual_idx(dt_list, min_rel_dt=(1,1), max_rel_dt=(12,31)):
+    """Return dictionary containing indices of timestamps that fall within relative month/day bounds of each year
+    """
+    dt_list = np.array(dt_list)
+    years = get_unique_years(dt_list)
+    out = {}
+    for year in years:
+        #If within the same year
+        if min_rel_dt[0] < max_rel_dt[1]:
+            dt1 = datetime(year, min_rel_dt[0], min_rel_dt[1])
+            dt2 = datetime(year, max_rel_dt[0], max_rel_dt[1])
+        #Or if our relative values include Jan 1
+        else:
+            dt1 = datetime(year, min_rel_dt[0], min_rel_dt[1])
+            dt2 = datetime(year+1, max_rel_dt[0], max_rel_dt[1])
+        idx = np.logical_and((dt_list >= dt1), (dt_list <= dt2))
+        if np.any(idx):
+            out[year] = idx
+    return out
 
 #Use this to get datetime bounds for annual mosaics
 def get_dt_bounds(dt_list, min_rel_dt=(1,1), max_rel_dt=(12,31)):
