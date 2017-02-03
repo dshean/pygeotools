@@ -80,7 +80,9 @@ class DEMStack:
             if os.path.exists(outdir):
                 self.outdir = outdir
             else:
-                raise IOError('Specified output directory does not exist')
+                os.makedirs(outdir)
+                self.outdir = outdir
+                #raise IOError('Specified output directory does not exist')
 
         if self.stack_fn is None:
             if self.fn_list:

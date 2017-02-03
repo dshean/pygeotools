@@ -226,7 +226,8 @@ def dt_filter_rel_annual_idx(dt_list, min_rel_dt=(1,1), max_rel_dt=(12,31)):
     """
     dt_list = np.array(dt_list)
     years = get_unique_years(dt_list)
-    out = {}
+    from collections import OrderedDict
+    out = OrderedDict() 
     for year in years:
         #If within the same year
         if min_rel_dt[0] < max_rel_dt[1]:
