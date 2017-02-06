@@ -1781,7 +1781,7 @@ def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_t
     if threads is None:
         from pygeotools.lib import iolib
         threads = iolib.cpu_count()
-        cmd.extend(['--threads', threads])
+    cmd.extend(['--threads', threads])
     if tr is not None:
         cmd.extend(['--tr', tr])
     if t_srs is not None:
