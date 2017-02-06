@@ -1179,13 +1179,18 @@ def pt_within_extent(x, y, extent):
 
 #Pad extent
 #Want to rewrite to allow for user-specified map units in addition to percentage
-def pad_extent(extent, perc=0.1, uniform=False):
+def pad_extent(extent, perc=0.1, width=None, uniform=False):
     e = np.array(extent)
-    dx = e[2] - e[0]
-    dy = e[3] - e[1]
-    if uniform:
-        dx = dy = np.mean([dx, dy])
-    return e + (perc * np.array([-dx, -dy, dx, dy]))
+    if width is not None:
+        dx = dy = width
+        out = e + np.array([-dx, -dy, dx, dy])
+    else:
+        dx = e[2] - e[0]
+        dy = e[3] - e[1]
+        if uniform:
+            dx = dy = np.mean([dx, dy])
+        out = e + (perc * np.array([-dx, -dy, dx, dy]))
+    return out
 
 #What happens if input geom have different t_srs???
 #Add option to return envelope, don't need additional functions to do this
