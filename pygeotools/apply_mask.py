@@ -23,6 +23,7 @@ def getparser():
     parser.add_argument('-extent', type=str, default='raster', choices=['raster','mask','intersection','union'], \
                         help='Desired output extent')
     parser.add_argument('-invert', action='store_true', help='Invert input mask')
+    parser.add_argument('-out_fn', type=str, default=None, help='Output filename')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('mask_fn', type=str, help='Input mask filename (can be existing raster with ndv, or binary mask)')
     return parser
@@ -93,7 +94,10 @@ def main():
     src_ma_full = np.ma.array(iolib.ds_getma(src_ds), mask=mask)
     mask = None
 
-    src_fn_masked = os.path.splitext(src_fn)[0]+'_masked.tif'
+    if args.out_fn is not None:
+        src_fn_masked = args.out_fn
+    else:
+        src_fn_masked = os.path.splitext(src_fn)[0]+'_masked.tif'
     print("Writing out masked version of input raster: %s" % src_fn_masked )
     iolib.writeGTiff(src_ma_full, src_fn_masked, src_ds, create=True)
 
