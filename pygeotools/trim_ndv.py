@@ -33,7 +33,7 @@ def main():
     bma = iolib.ds_getma(src_ds)
 
     print("Computing min/max indices for mask")
-    edge_env = malib.edgefind2(bma)
+    edge_env = malib.edgefind2(bma).astype(int)
 
     print("Updating output geotransform")
     out_gt = list(src_gt)
@@ -54,6 +54,7 @@ def main():
     print("Writing out: %s" % out_fn)
     #Extract valid subsection from input array
     #indices+1 are necessary to include valid row/col on right and bottom edges
+    import ipdb; ipdb.set_trace()
     iolib.writeGTiff(bma[edge_env[0]:edge_env[1]+1, edge_env[2]:edge_env[3]+1], out_fn, src_ds, gt=out_gt)
     bma = None
 
