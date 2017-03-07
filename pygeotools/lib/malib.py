@@ -173,7 +173,7 @@ class DEMStack:
     def get_ds(self):
         nl = self.ma_stack.shape[1]
         ns = self.ma_stack.shape[2]
-        gdal_dtype = iolib.np_gdal_dtype(np.dtype(self.dtype))
+        gdal_dtype = iolib.np2gdal_dtype(np.dtype(self.dtype))
         m_ds = gdal.GetDriverByName('MEM').Create('', ns, nl, 1, gdal_dtype)
         m_gt = [self.extent[0], self.res, 0, self.extent[3], 0, -self.res]
         m_ds.SetGeoTransform(m_gt)
@@ -1234,7 +1234,7 @@ def mask_dilate(a, iterations=1, erode=False):
     a = checkma(a)
     if erode:
         a = mask_islands(a, iterations)
-    newmask = (~np.ma.getmaskarray(a))
+    newmask = ~(np.ma.getmaskarray(a))
     newmask = ndimage.morphology.binary_dilation(newmask, iterations=iterations)
     return ~newmask
 
