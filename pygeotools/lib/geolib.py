@@ -1769,7 +1769,7 @@ def xy2geom(x, y, t_srs=None):
         geom.AssignSpatialReference(t_srs)
     return geom
 
-def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_tile_size=None, threads=None, tile=None):
+def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_tile_size=None, threads=None, tile=None, stat=None):
     """
     Create ASP dem_mosaic command 
     Useful for spawning many single-threaded mosaicing processes
@@ -1796,6 +1796,8 @@ def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_t
         cmd.append(tile)
     if georef_tile_size is not None:
         cmd.extend(['--georef-tile-size', georef_tile_size])
+    if stat is not None:
+        cmd.append('--%s' % stat)
     cmd.extend(fn_list)
     cmd = [str(i) for i in cmd]
     #print(cmd)
