@@ -109,8 +109,8 @@ def fn_getdatetime_list(fn):
         dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:0[0-9]|1[0-9]|2[0-3])[0-5][0-9]', fn)
     if not dstr:
         dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])_', fn)
-    if not dstr:
-        dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])', fn)
+        #This should pick up dates separated by a dash
+        #dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])', fn)
     if not dstr:
         dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9]_', fn)
     #This is for USGS archive filenames
@@ -118,8 +118,9 @@ def fn_getdatetime_list(fn):
         dstr = re.findall(r'[0-3][0-9][a-z][a-z][a-z][0-9][0-9]', fn)
     #if not dstr:
     #    dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9]', fn)
-    #This is a hack to remove adjacent underscores 
+    #This is a hack to remove peripheral underscores and dashes
     dstr = [d.lstrip('_').rstrip('_') for d in dstr]
+    dstr = [d.lstrip('-').rstrip('-') for d in dstr]
     #This returns an empty list of nothing is found
     out = [strptime_fuzzy(s) for s in dstr]
     #This is USGS archive format
