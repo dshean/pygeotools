@@ -189,7 +189,10 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     return dst_ds
 
 #Use this to warp to mem ds
-def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None, dst_ndv=None):
+#NOTE: there is a bug in GDAL that mem datasets are initialized with ndv of 0, even if ds has different ndv set
+#http://gis.stackexchange.com/questions/158503/9999-no-data-value-becomes-0-when-writing-array-to-gdal-memory-file
+#Hardcode 0 here
+def memwarp(src_ds, res=None, extent=None, t_srs=None, r=None, oudir=None, dst_ndv=0):
     """Helper function that calls warp for single input Dataset with output to memory (GDAL Memory Driver)
     """
     driver = iolib.mem_drv
@@ -487,19 +490,19 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
 
     return out_ds_list
 
-def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False):
+def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False, dst_ndv=0):
     """Helper function for memwarp of multiple input GDAL Datasets
     """
-    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=memwarp)
+    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=memwarp, dst_ndv=dst_ndv)
 
-def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False):
+def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False, dst_ndv=0):
     """Helper function for memwarp of multiple input filenames
     """
     #Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
-    return memwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose)
+    return memwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, dst_ndv=dst_ndv)
 
 def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=False, outdir=None, dst_ndv=None):
     """Helper function for diskwarp of multiple input GDAL Datasets
