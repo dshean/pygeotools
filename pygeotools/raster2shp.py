@@ -55,5 +55,7 @@ def main():
         print(cmd)
         subprocess.call(cmd, shell=False)
 
+    #Now, add option to clean up intermediate shp - can generate 1000s of files
+
 if __name__ == '__main__':
     main()
