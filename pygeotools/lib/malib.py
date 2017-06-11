@@ -1339,7 +1339,8 @@ def edgefind_loop(a):
     return edges
 
 #This is fast, best option for ndv trim
-def edgefind2(a):
+#Numpy now requires integer indices, added round option
+def edgefind2(a, intround=True):
     edges = np.zeros(4)
     mask = ~np.ma.getmaskarray(a)
     rowmask = mask.any(axis=1)
@@ -1351,6 +1352,8 @@ def edgefind2(a):
     colmask = None
     edges[0:2] = [rowmask_nonzero.min(), rowmask_nonzero.max()]
     edges[2:4] = [colmask_nonzero.min(), colmask_nonzero.max()]
+    if intround:
+        edges = [int(round(i)) for i in edges]
     return edges
 
 def ndv_trim(a):
