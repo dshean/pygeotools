@@ -37,7 +37,8 @@ tp_srs = osr.SpatialReference()
 tp_proj = '+proj=latlong +a=6378136.300000 +b=6356751.600563 +towgs84=0,0,0,0,0,0,0 +no_defs'
 tp_srs.ImportFromProj4(tp_proj)
 
-#Define EGM96 srs
+#Vertical CS setup
+#See: http://lists.osgeo.org/pipermail/gdal-dev/2011-August/029856.html
 #Note: must have gtx grid files in /usr/local/share/proj
 #Should add a check for these
 #cd /usr/local/share/proj
@@ -45,8 +46,12 @@ tp_srs.ImportFromProj4(tp_proj)
 #wget http://download.osgeo.org/proj/vdatum/egm08_25/egm08_25.gtx
 #NAD83 (ellipsoid) to NAVD88 (orthometric)
 #wget http://download.osgeo.org/proj/vdatum/usa_geoid/g.tar.gz
+#tar -xzvf g.tar.gz
+#rm g.tar.gz
 #wget http://download.osgeo.org/proj/vdatum/usa_geoid2012.zip
-#See: http://lists.osgeo.org/pipermail/gdal-dev/2011-August/029856.html
+#unzip usa_geoid2012.zip
+#rm usa_geoid2012.zip
+
 egm96_srs=osr.SpatialReference()
 egm96_srs.ImportFromProj4("+proj=longlat +datum=WGS84 +no_defs +geoidgrids=egm96_15.gtx")
 
