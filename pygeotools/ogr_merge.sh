@@ -27,19 +27,22 @@ if [ -f "$outfile" ]; then
     done
 fi
 
-#Initiate with the first input file
+#Should pull out proj from first input file and use for all
+#Can run into issues with append when inputs have diff UTM zones, for example
+proj='EPSG:4326'
+
 if [ "$ext" == "sqlite" ] ; then
-    ogr2ogr -overwrite -f 'SQLite' -nln ${2%.*} -dsco SPATIALITE=YES $outfile $2
+    ogr2ogr -t_srs $proj -overwrite -f 'SQLite' -nln ${2%.*} -dsco SPATIALITE=YES $outfile $2
     shift; shift
     for i in $@ 
     do
-        ogr2ogr -update -append -nln ${i%.*} $outfile $i
+        ogr2ogr -t_srs $proj -update -append -nln ${i%.*} $outfile $i
     done
 else
-    ogr2ogr -overwrite -f 'ESRI Shapefile' -nln ${outfile%.*} $outfile $2
+    ogr2ogr -t_srs $proj -overwrite -f 'ESRI Shapefile' -nln ${outfile%.*} $outfile $2
     shift; shift
     for i in $@ 
     do
-        ogr2ogr -update -append $outfile $i -nln ${outfile%.*} 
+        ogr2ogr -t_srs $proj -update -append $outfile $i -nln ${outfile%.*} 
     done
 fi
