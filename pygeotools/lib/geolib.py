@@ -1386,12 +1386,13 @@ def gdaldem_wrapper(fn, product='hs', returnma=True):
         out_fn = os.path.splitext(fn)[0]+'_hs_az315.tif'
     else:
         out_fn = os.path.splitext(fn)[0]+'_%s.tif' % product
-    cmd = ['gdaldem', product]
-    cmd.extend(opts)
-    cmd.extend(iolib.gdal_opt_co)
-    cmd.extend([fn, out_fn])
-    print(' '.join(cmd))
-    subprocess.call(cmd, shell=False)
+    if not os.path.exists(out_fn):
+        cmd = ['gdaldem', product]
+        cmd.extend(opts)
+        cmd.extend(iolib.gdal_opt_co)
+        cmd.extend([fn, out_fn])
+        print(' '.join(cmd))
+        subprocess.call(cmd, shell=False)
 
     if returnma:
         ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
