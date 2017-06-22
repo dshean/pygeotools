@@ -114,6 +114,19 @@ conus_aea_srs.ImportFromProj4(conus_aea_proj)
 #Need to broadcast z=0.0 if z is not specified
 #Check that all inputs have same nonzero length
 
+def cT_helper_ma(x, y, z, in_srs, out_srs):
+    from pygeotools.lib import malib
+    valid_idx = ~(malib.common_mask([x,y,z]))
+    xc, yc, zc = [x[valid_idx], y[valid_idx], z[valid_idx]]
+    xt, yt, zt = cT_helper(xc, yc, zc, in_srs, out_srs)
+    xo = np.ma.masked_all_like(x)
+    yo = np.ma.masked_all_like(y)
+    zo = np.ma.masked_all_like(z)
+    xo[valid_idx] = xt
+    yo[valid_idx] = yt
+    zo[valid_idx] = zt
+    return xo, yo, zo
+
 def cT_helper(x, y, z, in_srs, out_srs):
     """Helper function that wraps osr CoordinatTransformation
     """
@@ -220,7 +233,7 @@ def ll2local(lon, lat, z=0, local_srs=None):
         lonm = lon.mean()
         latm = lat.mean()
         local_srs = localortho(lonm, latm)
-    return cT_helper(lon, lat, z, wgs_srs, local_srs)
+    return cT_helper_ma(lon, lat, z, wgs_srs, local_srs)
 
 def sps2local(x, y, z=0, local_srs=None):
     if local_srs is None:
