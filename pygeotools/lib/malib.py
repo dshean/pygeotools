@@ -1207,7 +1207,7 @@ def common_mask(ma_list, apply=False):
     #Check dtype = bool
     #Masked values are listed as true, so want to return any()
     #a+b+c - OR (any)
-    mask = a.mask.any(axis=0)
+    mask = np.ma.getmaskarray(a).any(axis=0)
     #a*b*c - AND (all)
     #return a.all(axis=0)
     if apply:
@@ -1410,7 +1410,7 @@ def fast_median(a):
         out = np.ma.masked
     return out
 
-def mad(a, c=1.4826):
+def mad(a, axis=None, c=1.4826):
     """Compute normalized median absolute difference
     
     Note: 1.4826 = 1/0.6745
@@ -1418,13 +1418,12 @@ def mad(a, c=1.4826):
     a = checkma(a)
     #return np.ma.median(np.fabs(a - np.ma.median(a))) / c
     if a.count() > 0:
-        out = fast_median(np.fabs(a - fast_median(a))) * c
+        if axis is None:
+            out = fast_median(np.fabs(a - fast_median(a))) * c
+        else:
+            out = np.ma.median(np.ma.fabs(a - np.ma.median(a, axis=0)), axis=0)
     else:
         out = np.ma.masked
-    return out
-
-def mad_ax0(a, c=1.4826):
-    out = np.ma.median(np.ma.fabs(a - np.ma.median(a, axis=0)), axis=0)
     return out
 
 #Percentile values
