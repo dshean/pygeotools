@@ -359,6 +359,19 @@ def dms2dd_str(dms_str):
     dd = dms2dd(degree*sign, minute, second+frac_seconds) 
     return dd
 
+def dm2dd(d,m):
+    """Convert degrees, decimal minutes to decimal degrees
+    """
+    dd = dms2dd(d,m,0)
+    return dd
+
+def dd2dm(dd):
+    """Convert decimal to degrees, decimal minutes
+    """
+    d,m,s = dd2dms(dd)
+    m = m + float(s)/3600
+    return d,m,s 
+
 def mapToPixel(mX, mY, geoTransform):
     """Convert map coordinates to pixel coordinates based on geotransform
     
