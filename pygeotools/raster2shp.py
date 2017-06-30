@@ -52,7 +52,7 @@ def main():
         import subprocess
         cmd = ['ogr_merge.sh', merge_fn]
         cmd.extend(merge_fn_list)
-        print(cmd)
+        #print(cmd)
         subprocess.call(cmd, shell=False)
 
     #Now, add option to clean up intermediate shp - can generate 1000s of files

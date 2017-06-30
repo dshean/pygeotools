@@ -5,7 +5,6 @@
 #To do:
 #Better about handling command line arguments
 #Check that all shapefiles have same projeciton/cs?
-#layer names should be basename
 
 outfile=$1
 ext=${outfile#*.}
@@ -18,7 +17,7 @@ if [ -f "$outfile" ]; then
    	if [ "$ans" == "y" ]; then
 	    echo "Overwriting $outfile"
 	    break
-        elif [ "$ans" == "n" ]; then
+    elif [ "$ans" == "n" ]; then
 	    echo "You chose not to override. Exiting"
 	    exit 1
 	else
@@ -39,10 +38,11 @@ if [ "$ext" == "sqlite" ] ; then
         ogr2ogr -t_srs $proj -update -append -nln ${i%.*} $outfile $i
     done
 else
-    ogr2ogr -t_srs $proj -overwrite -f 'ESRI Shapefile' -nln ${outfile%.*} $outfile $2
+    lyr=$(basename ${outfile%.*})
+    ogr2ogr -t_srs $proj -overwrite -f 'ESRI Shapefile' -nln $lyr $outfile $2
     shift; shift
     for i in $@ 
     do
-        ogr2ogr -t_srs $proj -update -append $outfile $i -nln ${outfile%.*} 
+        ogr2ogr -t_srs $proj -update -append $outfile $i -nln $lyr 
     done
 fi
