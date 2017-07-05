@@ -33,7 +33,7 @@ def main():
     bma = iolib.ds_getma(src_ds)
 
     print("Computing min/max indices for mask")
-    edge_env = malib.edgefind2(bma).astype(int)
+    edge_env = malib.edgefind2(bma, intround=True)
 
     print("Updating output geotransform")
     out_gt = list(src_gt)
