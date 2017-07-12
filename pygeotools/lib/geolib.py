@@ -1387,7 +1387,7 @@ def geom2mask(geom, ds):
     mask = np.array(img).astype(bool)
     return ~mask
 
-def gdaldem_wrapper(fn, product='hs', returnma=True):
+def gdaldem_wrapper(fn, product='hs', returnma=True, verbose=True):
     """Wrapper for gdaldem functions
 
     Note: gdaldem is directly avaialable through API as of GDAL v2.1
@@ -1422,8 +1422,13 @@ def gdaldem_wrapper(fn, product='hs', returnma=True):
         cmd.extend(opts)
         cmd.extend(iolib.gdal_opt_co)
         cmd.extend([fn, out_fn])
-        print(' '.join(cmd))
-        subprocess.call(cmd, shell=False)
+        if verbose:
+            print(' '.join(cmd))
+            cmd_opt = {}
+        else:
+            fnull = open(os.devnull, 'w')
+            cmd_opt = {'stdout':fnull, 'stderr':subprocess.STDOUT}
+        subprocess.call(cmd, shell=False, **cmd_opt)
 
     if returnma:
         ds = gdal.Open(out_fn, gdal.GA_ReadOnly)
