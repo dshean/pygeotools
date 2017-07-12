@@ -1488,7 +1488,7 @@ def robust_spread_fltr(b, sigma=3):
 #Need to convert stats to float before json.dumps
 #The a.mean(dtype='float64') is needed for accuracte calculation
 #names = ['count', 'min', 'max', 'mean', 'std', 'med', 'mad', 'q1', 'q2', 'iqr', 'mode', 'p16', 'p84', 'spread']
-def print_stats(a, full=False):
+def get_stats(a, full=False):
     """Compute and print statistics for input array
 
     Needs to be cleaned up, return a stats object
@@ -1516,6 +1516,10 @@ def print_stats(a, full=False):
         ac_mode = float(mode(ac, axis=None)[0])
         stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), \
                 fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
+    return stats
+
+def print_stats(a, full=False):
+    stats = get_stats(a, full)
     print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
     return stats
 
