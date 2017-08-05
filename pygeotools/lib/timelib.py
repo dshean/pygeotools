@@ -191,7 +191,7 @@ def get_closest_dt_fn(fn, fn_list):
     return fn_list[idx]
 
 def get_closest_dt_idx(dt, dt_list):
-    """Find index of datetime in dt_list that is closest to input dt
+    """Get indices of dt_list that is closest to input dt
     """
     from pygeotools.lib import malib
     dt_list = malib.checkma(dt_list, fix=False)
@@ -199,6 +199,11 @@ def get_closest_dt_idx(dt, dt_list):
     return dt_diff.argmin()
 
 def get_closest_dt_padded_idx(dt, dt_list, pad=timedelta(days=30)):
+    """Get indices of dt_list that is closest to input dt +/- pad days
+    """
+    #If pad is in decimal days
+    if not isinstance(pad, timedelta):
+        pad = timedelta(days=pad)
     from pygeotools.lib import malib
     dt_list = malib.checkma(dt_list, fix=False)
     dt_diff = np.abs(dt - dt_list)
