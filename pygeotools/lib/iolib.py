@@ -6,6 +6,7 @@ Note: This was all written before RasterIO existed, which might be a better choi
 """
 
 import os
+import subprocess
 
 import numpy as np
 from osgeo import gdal, gdal_array, osr
@@ -455,6 +456,13 @@ def cpu_count():
     """
     from multiprocessing import cpu_count
     return cpu_count()
+
+def setstripe(dir, threads=cpu_count()):
+    if not os.path.exists(dir): 
+        os.makedirs(dir)
+    cmd = ['lfs', 'setstripe', dir, '--count', str(threads)]
+    print(' '.join(cmd))
+    subprocess.call(cmd)
 
 #This is a shared directory for files like LULC, used by multiple tools 
 #Default location is $HOME/data
