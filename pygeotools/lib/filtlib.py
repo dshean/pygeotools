@@ -1,96 +1,34 @@
 #! /usr/bin/env python
 """
-Filters for NumPy arrays 
+Library of spatial filters for 2D NumPy arrays 
 
 """
 
 import sys
 import os
-import shutil
 
 import numpy as np
 
 from pygeotools.lib import iolib
 from pygeotools.lib import malib
-from pygeotools.lib import geolib
-from pygeotools.lib import warplib
 
-#Note:
-#Original main casts input as float32 so np.nan filling works
-#Want function that checks and returns float32 if not
-#dem = iolib.ds_getma(dem_ds, 1).astype(np.float32)
-#Return original dtype?
+#Should consider creating a filter class
+#Can check parameters, return usage if incorrect 
 
-def dz_fltr(dem_fn, refdem_fn, perc=None, abs_dz_lim=(0, 30), smooth=True):
-    """Absolute elevation difference range filter using values from a source raster file and a reference raster file 
-    """
-    try:
-        open(refdem_fn)
-    except IOError:
-        sys.exit('Unable to open reference DEM: %s' % refdem_fn)
-
-    dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
-    dem = iolib.ds_getma(dem_ds)
-    refdem = iolib.ds_getma(refdem_ds)
-    out = dz_fltr_ma(dem, refdem, perc, abs_dz_lim, smooth)
-    return out
-
-def dz_fltr_ma(dem, refdem, perc=None, abs_dz_lim=(0,30), smooth=True):
-    """Absolute elevation difference range filter using values from a source array and a reference array 
-    """
-    if smooth:
-        refdem = gauss_fltr_astropy(refdem)
-        dem = gauss_fltr_astropy(dem)
-
-    dz = refdem - dem
-
-    #This is True for invalid values in DEM, and should be masked
-    demmask = np.ma.getmaskarray(dem)
-
-    if perc:
-        dz_perc = malib.calcperc(dz, perc)
-        print("Applying dz percentile filter (%s%%, %s%%): (%0.1f, %0.1f)" % (perc[0], perc[1], dz_perc[0], dz_perc[1]))
-        #This is True for invalid values
-        perc_mask = ((dz < dz_perc[0]) | (dz > dz_perc[1])).filled(False)
-        demmask = (demmask | perc_mask)
-
-    if abs_dz_lim:
-        #This is True for invalid values
-        abs_dz_mask = ((np.abs(dz) < abs_dz_lim[0]) | (np.abs(dz) > abs_dz_lim[1])).filled(False)
-        if True:
-            cutoff = 150
-            abs_dz_lim = (0, 80)
-            low = (refdem < cutoff).data
-            abs_dz_mask[low] = ((np.abs(dz) < abs_dz_lim[0]) | (np.abs(dz) > abs_dz_lim[1])).filled(False)[low]
-        demmask = (demmask | abs_dz_mask)
-
-    out = np.ma.array(dem, mask=demmask, fill_value=dem.fill_value)
-    return out
-
-#Absolute elevation range filter using an existing low-res DEM
-def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
-    try:
-        open(refdem_fn)
-    except IOError:
-        sys.exit('Unable to open reference DEM: %s' % refdem_fn)
-
-    dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
-    dem = iolib.ds_getma(dem_ds)
-    refdem = iolib.ds_getma(refdem_ds)
-
-    rangelim = (refdem.min(), refdem.max())
-    rangelim = (rangelim[0] - pad, rangelim[1] + pad)
-
-    print('Excluding values outside of padded ({0:0.1f} m) lowres DEM range: {1:0.1f} to {2:0.1f} m'.format(pad, *rangelim))
-    out = range_fltr(dem, rangelim)
-    return out
-
-#Check input range
 def range_fltr(dem, rangelim):
     """Range filter (helper function)
     """
-    print('Excluding values outside of range: {0:0.1f} to {1:0.1f} m'.format(*rangelim))
+    print('Excluding values outside of range: {0:f} to {1:f}'.format(*rangelim))
     out = np.ma.masked_outside(dem, *rangelim)
+    out.set_fill_value(dem.fill_value)
+    return out
+
+def absrange_fltr(dem, rangelim):
+    """Absolute range filter 
+    """
+    out = range_fltr(np.ma.abs(dem), *rangelim)
+    #Apply mask to original input
+    out = np.ma.array(dem, mask=np.ma.getmaskarray(out))
     out.set_fill_value(dem.fill_value)
     return out
 
@@ -98,38 +36,45 @@ def perc_fltr(dem, perc=(1.0, 99.0)):
     """Percentile filter
     """
     rangelim = malib.calcperc(dem, perc)
-    print('Excluding values outside of percentile ({0:0.2f}, {1:0.2f}) range: {2:0.1f} to {3:0.1f} m'.format(*(perc + rangelim)))
+    print('Excluding values outside of percentile range: {0:0.2f} to {1:0.2f}'.format(*perc))
     out = range_fltr(dem, rangelim)
     return out
 
-#These are percentile ranges for 1,2,3 sigma
-#15.865, 84.135
-#2.275, 97.725
-#0.135, 99.865
+def sigma_fltr(dem, n=3):
+    """sigma * factor filter
+    
+    Useful for outlier removal
 
-def threesigma(dem):
-    """3-sigma filter
+    These are min/max percentile ranges for different sigma values:
+    1: 15.865, 84.135
+    2: 2.275, 97.725
+    3: 0.135, 99.865
     """
     std = dem.std()
     u = dem.mean()
-    rangelim = (u - 3*std, u + 3*std)
+    print('Excluding values outside of range: {1:0.2f} +/- {0}*{2:0.2f}'.format(n, u, std))
+    rangelim = (u - n*std, u + n*std)
     out = range_fltr(dem, rangelim)
     return out
 
-#This is used to clean up difference maps before alignment
-def mad_fltr(dem, mad_sigma=2):
+def mad_fltr(dem, n=2):
     """Median absolute deviation * factor filter
+
+    Robust outlier removal
     """
     med = np.ma.median(dem)
     mad = malib.mad(dem)
-    rangelim = (med - mad_sigma * mad, med + mad_sigma * mad)
-    print('Excluding values outside of range defined by {0} mad sigma: {1:0.1f} to {2:0.1f} m'.format(mad_sigma, *rangelim))
+    print('Excluding values outside of range: {1:0.2f} +/- {0}*{2:0.2f}'.format(n, med, mad))
+    rangelim = (med - n*mad, med + n*mad)
     out = range_fltr(dem, rangelim)
     return out
 
 #Slope filter
+#This should be updated with latest GDAL API - gdaldem functions can be called directly
 #Would a simple gradient or diff operation here be sufficient to reveal bogus pixels
 def slope_fltr(dem_fn, slopelim=(0.1, 40)):
+    from pygeotools.lib import geolib
+    import shutil
     #Note, Noh and Howat set minimum slope of 20 deg for coregistration purposes
     #perc = (0.01, 99.99)
     #slopelim = malib.calcperc(dem_slope, perc)
@@ -140,7 +85,6 @@ def slope_fltr(dem_fn, slopelim=(0.1, 40)):
     shutil.rm(os.path.splitext(dem_fn)[0]+'_slope.tif')
     return out
 
-#Smooth with gaussian filter
 def gauss_fltr(dem, sigma=1):
     print("Applying gaussian smoothing filter with sigma %s" % sigma)
     #Note, ndimage doesn't properly handle ma - convert to nan
@@ -431,6 +375,72 @@ def uniform_fltr(dem, fsize=7):
     #Now mask all nans
     out = np.ma.fix_invalid(dem_filt_med, copy=False, fill_value=dem.fill_value)
     out.set_fill_value(dem.fill_value)
+    return out
+
+def dz_fltr(dem_fn, refdem_fn, perc=None, rangelim=(0,30), smooth=False):
+    """Absolute elevation difference range filter using values from a source raster file and a reference raster file 
+    """
+    try:
+        open(refdem_fn)
+    except IOError:
+        sys.exit('Unable to open reference DEM: %s' % refdem_fn)
+
+    from pygeotools.lib import warplib
+    dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
+    dem = iolib.ds_getma(dem_ds)
+    refdem = iolib.ds_getma(refdem_ds)
+    out = dz_fltr_ma(dem, refdem, perc, rangelim, smooth)
+    return out
+
+def dz_fltr_ma(dem, refdem, perc=None, rangelim=(0,30), smooth=False):
+    """Absolute elevation difference range filter using values from a source array and a reference array 
+    """
+    if smooth:
+        refdem = gauss_fltr_astropy(refdem)
+        dem = gauss_fltr_astropy(dem)
+
+    dz = refdem - dem
+
+    #This is True for invalid values in DEM, and should be masked
+    demmask = np.ma.getmaskarray(dem)
+
+    if perc:
+        dz_perc = malib.calcperc(dz, perc)
+        print("Applying dz percentile filter (%s%%, %s%%): (%0.1f, %0.1f)" % (perc[0], perc[1], dz_perc[0], dz_perc[1]))
+        #This is True for invalid values
+        perc_mask = ((dz < dz_perc[0]) | (dz > dz_perc[1])).filled(False)
+        demmask = (demmask | perc_mask)
+
+    if rangelim:
+        #This is True for invalid values
+        range_mask = ((np.abs(dz) < rangelim[0]) | (np.abs(dz) > rangelim[1])).filled(False)
+        if False:
+            cutoff = 150
+            rangelim = (0, 80)
+            low = (refdem < cutoff).data
+            range_mask[low] = ((np.abs(dz) < rangelim[0]) | (np.abs(dz) > rangelim[1])).filled(False)[low]
+        demmask = (demmask | range_mask)
+
+    out = np.ma.array(dem, mask=demmask, fill_value=dem.fill_value)
+    return out
+
+#Absolute elevation range filter using an existing low-res DEM
+def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
+    try:
+        open(refdem_fn)
+    except IOError:
+        sys.exit('Unable to open reference DEM: %s' % refdem_fn)
+
+    from pygeotools.lib import warplib
+    dem_ds, refdem_ds = warplib.memwarp_multi_fn([dem_fn, refdem_fn], res='first', extent='first', t_srs='first')
+    dem = iolib.ds_getma(dem_ds)
+    refdem = iolib.ds_getma(refdem_ds)
+
+    rangelim = (refdem.min(), refdem.max())
+    rangelim = (rangelim[0] - pad, rangelim[1] + pad)
+
+    print('Excluding values outside of padded ({0:0.1f} m) lowres DEM range: {1:0.1f} to {2:0.1f} m'.format(pad, *rangelim))
+    out = range_fltr(dem, rangelim)
     return out
 
 def butter_low(dt_list, val, lowpass=1.0):
