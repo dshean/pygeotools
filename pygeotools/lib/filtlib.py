@@ -318,7 +318,7 @@ def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
         t[:,mask] = np.nan
     t = t.reshape(newshp)
     out = f(t, axis=1).reshape(dem.shape)
-    out = np.ma.fix_invalid(out)
+    out = np.ma.fix_invalid(out).astype(dem.dtype)
     out.set_fill_value(dem.fill_value)
     return out
 
