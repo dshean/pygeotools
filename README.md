@@ -1,33 +1,36 @@
 # pygeotools
 Libraries and command line tools for geospatial data processing/analysis
 
-## Overview
-
 ## Features
-- quickly resample rasters to common resolution/extent/projection
-- functions using NumPy masked arrays to handle NoData
-- simple coordinate transformations
-- automatic projection determination
+- Resample/warp rasters to common resolution/extent/projection
+- Many functions to handle rasters with NoData gaps using [NumPy masked arrays](https://docs.scipy.org/doc/numpy/reference/maskedarray.generic.html)
+- Point data coordinate transformations, sampling, and interpolation routines (e.g., arrays of xyz points)
+- Common raster filtering operations
 
-### pygeotools/lib - libraries containing many useful functions
-- geolib - coordinate transformations, raster to vector, vector to raster
+### Libraries [pygeotools/lib](./pygeotools/lib) 
+- geolib - Coordinate transformations, raster to vector, vector to raster
 - malib - NumPy Masked Array operations, DEMStack class
-- warplib - on-the-fly GDAL warp operations
-- iolib - file input/output, wrappers for GDAL I/O, masked array write to disk
-- timelib - time conversions, useful for raster time series analysis
-- filtlib - raster filtering 
+- warplib - On-the-fly GDAL warp operations for abitrary number of input datasets
+- iolib - File input/output, wrappers for GDAL I/O, masked array write to disk
+- timelib - Time conversions, extract timestamps from filenames, useful for raster time series analysis
+- filtlib - Collection of filters for 2D masked arrays (Gauss, rolling median, high pass, etc.)
 
-### pygeotools - executable command-line utilities (run with no arguments for usage)
-- warptool.py
-- make_stack.py
-- clip_raster_by_shp.py
-- trim_ndv.py
-- apply_mask.py
+### Command-line utilities (run with no arguments for usage)
+- warptool.py - Warp arbitrary rasters to common res/extent/proj
+- make_stack.py - Create a "stack" of input rasters (a raster time series object) and compute stats
+- clip_raster_by_shp.py - Clip and mask an input raster using a polygon shapefile
+- apply_mask.py - Apply mask from one raster to another
+- filter.py - Apply various filters available in filtlib
+- trim_ndv.py - Remove rows/cols containing only NoData from raster margins
+- replace_ndv.py - Replace NoData value
+- proj_select.py - Automatically determine projection for input lat/lon or raster
+- raster2shp.py - Create polygon shapefile of input raster footprints
+- ogr_merge.sh - Merge shapefiles
 - ...
 
 ## Examples 
 
-### Warping multiple datasets to common grid and computing difference
+### Warping multiple datasets to common grid, computing difference, writing out
 ```
 from pygeotools.lib import iolib, warplib, malib
 fn1 = 'raster1.tif'
@@ -100,11 +103,13 @@ The -e flag ("editable mode", setuptools "develop mode") will allow you to modif
 
 ## Disclaimer 
 
-This originated as a poorly written, poorly organized personal repo that I am finally cleaning up and distributing.  There are some useful things that work very well, other things that were hastily written for a one-off task several years ago, and some confusing things that were never finished.  I have no tests.  The minor changes needed for migration to this repo have undoubtedly broken some things. 
+This originated as a personal repo that I am slowly cleaning up and distributing.  There are some useful things that work very well, other things that were hastily written for a one-off task several years ago, and some confusing things that were never finished. 
 
-Contributions, bug reports, and general feedback are all welcome.  My time is limited, I have bad habits, and I could really use some help.  Thanks in advance.
+Contributions, bug reports, and general feedback are all welcome.  My time is limited, I have some bad habits, and I could really use some help.  Thanks in advance.
 
 This was all originally developed for Python 2.X, but should now also work with Python 3.X thanks to [@dlilien](https://github.com/dlilien)
+
+Some of this functionality now exists in the excellent, mature, well-supported [rasterio](https://github.com/mapbox/rasterio).  Eventually, I will integrate rasterio API calls where appropriate.
 
 ## License
 
