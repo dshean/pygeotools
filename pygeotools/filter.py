@@ -24,6 +24,9 @@ def getparser():
     parser.add_argument('fn', help='Input filename (img1.tif)')
     parser.add_argument('--stats', action='store_true', help='Print stats before and after filtering')
     parser.add_argument('-outdir', default=None, help='Output directory')
+    #Should implement subparser here to handle different number of args for different filter types
+    #https://docs.python.org/2/library/argparse.html#sub-commands
+    #Can call functions directly
     #Could specify sequence of filters here
     #Should accept arbitrary number of ordered filter operations as cli argument
     parser.add_argument('-filt', nargs=1, default='gauss', choices=filter_choices, help='Filter type (default: %(default)s)')
