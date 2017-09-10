@@ -1387,6 +1387,25 @@ def geom2mask(geom, ds):
     mask = np.array(img).astype(bool)
     return ~mask
 
+def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
+    """
+    Wrapper for gdaldem functions
+
+    Uses gdaldem API, requires GDAL v2.1+
+    """
+    choices = ["hillshade", "slope", "aspect", "color-relief", "TRI", "TPI", "Roughness"]
+    out = None
+    if processing in choices:
+        out = gdal.DEMProcessing('', ds, processing, format='MEM')
+    else:
+        print("Invalid processing choice")
+        print(choices)
+    #This should be a separate function
+    if returnma:
+        from pygeotools.lib import iolib
+        out = iolib.ds_getma(out)
+    return out 
+
 def gdaldem_wrapper(fn, product='hs', returnma=True, verbose=True):
     """Wrapper for gdaldem functions
 
