@@ -451,7 +451,7 @@ def image_check(fn):
             status = False 
     return status
 
-def cpu_count(logical=False):
+def cpu_count(logical=True):
     """Return system CPU count
     """
     if logical:
