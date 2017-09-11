@@ -451,11 +451,16 @@ def image_check(fn):
             status = False 
     return status
 
-def cpu_count():
+def cpu_count(logical=False):
     """Return system CPU count
     """
-    from multiprocessing import cpu_count
-    return cpu_count()
+    if logical:
+        from multiprocessing import cpu_count
+        ncpu=cpu_count()
+    else:
+        import psutil
+        ncpu=psutil.cpu_count(logical=False)
+    return ncpu
 
 def setstripe(dir, threads=cpu_count()):
     if not os.path.exists(dir): 
