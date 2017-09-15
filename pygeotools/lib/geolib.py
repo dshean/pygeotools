@@ -739,12 +739,13 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     a = ~(a.astype('Bool'))
     return a
 
-def raster_shpclip(r_fn, shp_fn, extent='raster'):
+def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None):
     """Clip an input raster by input polygon shapefile for given extent
 
     """
     from pygeotools.lib import iolib
     from pygeotools.lib import warplib
+
     r_ds = iolib.fn_getds(r_fn)
     r_srs = get_ds_srs(r_ds)
     r_extent = ds_extent(r_ds)
@@ -752,17 +753,24 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
     shp_srs = lyr.GetSpatialRef()
+    if not r_srs.IsSame(shp_srs):
+        shp_ds = lyr_proj(lyr, r_srs)
+        lyr = shp_ds.GetLayer()
     #This returns xmin, ymin, xmax, ymax
     shp_extent = lyr_extent(lyr)
 
     #Define the output - can set to either raster or shp
-    #Accept as cl arg
+    #Could accept as cl arg
     out_srs = r_srs
 
     if extent == 'raster':
         out_extent = r_extent 
     elif extent == 'shp':
         out_extent = shp_extent
+        #Add padding around shp_extent
+        #Should implement buffer here
+        if pad is not None:
+            out_extent = pad_extent(out_extent, width=pad)
 
     print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
     verbose = False
@@ -774,11 +782,12 @@ def raster_shpclip(r_fn, shp_fn, extent='raster'):
     r_ds = warplib.memwarp(r_ds, extent=out_extent, t_srs=out_srs, r='cubic')
     r = iolib.ds_getma(r_ds)
 
-    #Create binary mask from shp
-    mask = shp2array(shp_fn, r_ds)
-
-    #Now apply the mask
-    r = np.ma.array(r, mask=mask)
+    #If bbox, return without clipping, otherwise, clip to polygons
+    if not bbox:
+        #Create binary mask from shp
+        mask = shp2array(shp_fn, r_ds)
+        #Now apply the mask
+        r = np.ma.array(r, mask=mask)
     return r
 
 def shp2geom(shp_fn):
