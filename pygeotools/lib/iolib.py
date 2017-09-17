@@ -320,6 +320,23 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
     dst_ds.GetRasterBand(bnum).SetNoDataValue(float(a.fill_value))
     dst_ds = None
 
+def writevrt(out_csv,srs='EPSG:4326',x='field_1',y='field_2'):
+    """
+    Write out a vrt to accompany a csv of points
+    """
+    out_vrt = os.path.splitext(out_csv)[0]+'.vrt'
+    out_csv = os.path.split(out_csv)[-1]
+    f = open(out_vrt, 'w')
+    f.write('<OGRVRTDataSource>\n')
+    f.write('   <OGRVRTLayer name="%s">\n' % os.path.splitext(out_csv)[0])
+    f.write('        <SrcDataSource>%s</SrcDataSource>\n' % out_csv)
+    f.write('        <GeometryType>wkbPoint</GeometryType>\n')
+    f.write('        <LayerSRS>%s</LayerSRS>\n' % srs)
+    f.write('        <GeometryField encoding="PointFromColumns" x="%s" y="%s"/>\n' % (x, y))
+    f.write('    </OGRVRTLayer>\n')
+    f.write('</OGRVRTDataSource>\n')
+    f.close()
+
 #Move to geolib?
 #Look up equivalent GDAL data type
 def np2gdal_dtype(d):
