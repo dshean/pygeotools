@@ -1093,6 +1093,18 @@ def line2pts(geom, dl=None):
 
     return l, mX, mY 
     
+#Started moving profile extraction code from extract_profile.py to here
+#Need to clean this up
+def extract_profile(ds, geom, dl=None, km=False):
+    l, mX, mY = line2pts(geom, dl)
+    #Need to convert to same srs
+    pX, pY = mapToPixel(np.array(mX), np.array(mY), ds.GetGeoTransform())
+    l = np.array(l)
+    if km:
+        l /= 1000.
+    z = sample(ds, mX, mY)
+    return (l, mX, mY, z)
+
 def get_res_stats(ds_list, t_srs=None):
     """Return resolution stats for an input dataset list
     """
@@ -1501,6 +1513,16 @@ def geom2mask(geom, ds):
     # polygon = [(x1,y1),(x2,y2),...] or [x1,y1,x2,y2,...]
     mask = np.array(img).astype(bool)
     return ~mask
+
+def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hillshade', returnma=False):
+    """
+    Wrapper to allow gdaldem calculations for arbitrary NumPy masked array input
+    Untested, work in progress placeholder
+    Should only need to specify res, can caluclate local gt, cartesian srs
+    """
+    if ds is None:
+        ds = mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32)
+    return gdal_mem_ds(ds, processing=processing, returnma=returnma)
 
 def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
     """
