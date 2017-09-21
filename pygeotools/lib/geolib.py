@@ -917,6 +917,112 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
         print("No unmasked values found")
     return geom
 
+#The following were originally in dem_coreg glas_proc, may require some additional cleanup
+#Want to split into cascading levels, with lowest doing pixel-based sampling on array
+#See demtools extract_profile.py
+
+def ds_cT(ds, x, y, xy_srs=wgs_srs):
+    """Convert input point coordinates to map coordinates that match input dataset
+    """
+    #Convert lat/lon to projected srs
+    ds_srs = get_ds_srs(ds)
+    #If xy_srs is undefined, assume it is the same as ds_srs
+    mX = x
+    mY = y
+    if xy_srs is not None:
+        if not ds_srs.IsSame(xy_srs):
+            mX, mY, mZ = cT_helper(x, y, 0, xy_srs, ds_srs)
+    return mX, mY
+
+#Might be best to pass points as geom, with srs defined
+def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
+    """Sample input dataset at map coordinates
+    
+    This is a generic sampling function, and will return value derived from window (dimensions pad*2+1) around each point
+   
+    By default, assumes input map coords are identical to ds srs.  If different, specify xy_srs to enable conversion.
+    """
+    from pygeotools.lib import iolib, malib
+
+    shape = (ds.RasterYSize, ds.RasterXSize)
+    gt = ds.GetGeoTransform()
+    b = ds.GetRasterBand(bn)
+    b_ndv = iolib.get_ndv_b(b)
+    b_dtype = b.DataType
+    np_dtype = iolib.gdal2np_dtype(b)
+
+    #If necessary, convert input coordiantes to match ds srs
+    mX, mY = ds_cT(ds, mX, mY, xy_srs=xy_srs)
+
+    #This will sample an area corresponding to diameter of ICESat shot
+    if pad == 'glas':
+        spotsize = 70
+        pad = int(np.ceil(((spotsize/gt[1])-1)/2))
+
+    mX = np.atleast_1d(mX)
+    mY = np.atleast_1d(mY)
+    #Convert to pixel indices
+    pX, pY = mapToPixel(mX, mY, gt)
+    #Mask anything outside image dimensions
+    pX = np.ma.masked_outside(pX, 0, shape[1]-1)
+    pY = np.ma.masked_outside(pY, 0, shape[0]-1)
+    common_mask = (~(np.logical_or(np.ma.getmaskarray(pX), np.ma.getmaskarray(pY)))).nonzero()[0]
+
+    #Define x and y sample windows
+    xwin=pad*2+1
+    ywin=pad*2+1
+    #This sets the minimum number of valid pixels, default 50%
+    min_samp_perc = 50 
+    min_samp = int(np.ceil((min_samp_perc/100.)*xwin*ywin))
+    #Create circular mask to simulate spot
+    #This only makes sense for for xwin > 3 
+    if circ:
+        circ_mask = filtlib.circular_mask(xwin)
+        min_samp = int(np.ceil((min_samp_perc/100.)*circ_mask.nonzero()[0].size))
+
+    pX_int = pX[common_mask].data
+    pY_int = pY[common_mask].data
+    #Round to nearest integer indices
+    pX_int = np.around(pX_int).astype(int)
+    pY_int = np.around(pY_int).astype(int)
+    #print("Valid extent: %i" % pX_int.size)
+
+    #Create empty array to hold output
+    stats = np.full((pX_int.size, 2), b_ndv, dtype=np_dtype)
+
+    r = gdal.GRA_NearestNeighbour
+    #r = gdal.GRA_Cubic
+
+    for i in range(pX_int.size):
+        #Could have float offsets here with GDAL resampling
+        samp = np.ma.masked_equal(b.ReadAsArray(xoff=pX_int[i]-pad, yoff=pY_int[i]-pad, win_xsize=xwin, win_ysize=ywin, resample_alg=r), b_ndv)
+        if circ:
+            samp = np.ma.array(samp, circ_mask)
+        if samp.count() >= min_samp:
+            if min_samp > 1:
+                #Use mean and std
+                #samp_med = samp.mean()
+                #samp_mad = samp.std()
+                #Use median and nmad (robust)
+                samp_med = malib.fast_median(samp)
+                samp_mad = malib.mad(samp)
+                stats[i][0] = samp_med 
+                stats[i][1] = samp_mad
+            else:
+                stats[i][0] = samp[0]
+                stats[i][1] = 0
+            #vals, resid, coef = ma_fitplane(samp, gt=[0, gt[1], 0, 0, 0, gt[5]], perc=None)
+            #Compute slope and aspect from plane
+            #rmse = malib.rmse(resid)
+
+    stats = np.ma.masked_equal(stats, b_ndv)
+    #Create empty array with as input points
+    out = np.full((pX.size, 2), b_ndv, dtype=np_dtype)
+    #Populate with valid samples
+    out[common_mask, :] = stats
+    out = np.ma.masked_equal(out, b_ndv)
+    return out
+
 def line2pts(geom, dl=None):
     """Given an input line geom, generate points at fixed interval
     
