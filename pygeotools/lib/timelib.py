@@ -293,8 +293,21 @@ def get_dt_bounds_fn(list_fn, min_rel_dt=(5,31), max_rel_dt=(6,1)):
 #This checks to see if input dt is between the given relative month/day interval 
 def rel_dt_test(dt, min_rel_dt=(1,1), max_rel_dt=(12,31)):
     if dt_check(dt): 
-        min_dt = datetime(dt.year, min_rel_dt[0], min_rel_dt[1])
-        max_dt = datetime(dt.year, max_rel_dt[0], max_rel_dt[1])
+        dt_doy = dt2doy(dt)
+        min_doy = dt2doy(datetime(dt.year, *min_rel_dt))
+        max_doy = dt2doy(datetime(dt.year, *max_rel_dt))
+        #If both relative dates are in the same year
+        if min_doy < max_doy:
+            min_dt = datetime(dt.year, min_rel_dt[0], min_rel_dt[1])
+            max_dt = datetime(dt.year, max_rel_dt[0], max_rel_dt[1])
+        else:
+            #If relative dates span Jan 1
+            if dt_doy >= min_doy:
+                min_dt = datetime(dt.year, min_rel_dt[0], min_rel_dt[1])
+                max_dt = datetime(dt.year + 1, max_rel_dt[0], max_rel_dt[1])
+            else:
+                min_dt = datetime(dt.year - 1, min_rel_dt[0], min_rel_dt[1])
+                max_dt = datetime(dt.year, max_rel_dt[0], max_rel_dt[1])
         out = (dt >= min_dt) & (dt <= max_dt)
     else:
         out = False
@@ -523,7 +536,7 @@ def o2dt(o):
     return matplotlib.dates.num2date(o)
 
 #Return integer DOY (julian)
-def dt2j(dt):
+def dt2doy(dt):
     """Convert datetime to integer DOY (Julian)
     """
     #return int(dt.strftime('%j'))
@@ -532,7 +545,7 @@ def dt2j(dt):
 #Year and day of year to datetime
 #Add comment to http://stackoverflow.com/questions/2427555/python-question-year-and-day-of-year-to-date
 #ordinal allows for days>365 and decimal days
-def j2dt(yr, j):
+def doy2dt(yr, j):
     """Convert year + integer DOY (Julian) to datetime
     """
     return o2dt(dt2o(datetime(int(yr), 1, 1))+j-1)
@@ -604,8 +617,8 @@ np_mat2dt = np.vectorize(mat2dt)
 np_dt2mat = np.vectorize(dt2mat)
 np_dt2o = np.vectorize(dt2o)
 np_o2dt = np.vectorize(o2dt)
-np_j2dt = np.vectorize(j2dt)
-np_dt2j = np.vectorize(dt2j)
+np_doy2dt = np.vectorize(doy2dt)
+np_dt2doy = np.vectorize(dt2doy)
 np_decyear2dt = np.vectorize(decyear2dt)
 np_dt2decyear = np.vectorize(dt2decyear)
 np_utc2dt = np.vectorize(datetime.utcfromtimestamp)
