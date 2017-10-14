@@ -1951,11 +1951,13 @@ class Site:
 
 site_dict = {}
 #NED 1/3 arcsec (10 m)
-#dem_fn = '/nobackup/deshean/rpcdem/ned13/ned13_tiles_glac24k_115kmbuff.vrt'
+ned13_dem_fn = '/nobackup/deshean/rpcdem/ned13/ned13_tiles_glac24k_115kmbuff.vrt'
 #NED 1 arcsec (30 m)
-#dem_fn = '/nobackup/deshean/rpcdem/ned1/ned1_tiles_glac24k_115kmbuff.vrt'
-site_dict['conus'] = Site(name='conus', extent=(-125, -104, 31, 50), srs=conus_aea_srs, refdem_fn='/nobackup/deshean/rpcdem/ned13/ned13_tiles_glac24k_115kmbuff.vrt')
-site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, refdem_fn='/nobackup/deshean/rpcdem/hma/srtm1/hma_srtm_gl1.vrt')
+ned1_dem_fn = '/nobackup/deshean/rpcdem/ned1/ned1_tiles_glac24k_115kmbuff.vrt'
+site_dict['conus'] = Site(name='conus', extent=(-125, -104, 31, 50), srs=conus_aea_srs, refdem_fn=ned1_dem_fn)
+#SRTM-GL1 1 arcsec (30 m)
+srtm1_fn = '/nobackup/deshean/rpcdem/hma/srtm1/hma_srtm_gl1.vrt'
+site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, refdem_fn=srtm1_fn)
 
 #bbox should be [minlon, maxlon, minlat, maxlat]
 def bbox2geom(bbox, t_srs=None):
