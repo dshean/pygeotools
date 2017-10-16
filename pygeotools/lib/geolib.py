@@ -937,7 +937,7 @@ def ds_cT(ds, x, y, xy_srs=wgs_srs):
     return mX, mY
 
 #Might be best to pass points as geom, with srs defined
-def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
+def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, min_samp_perc=50, circ=False, count=False):
     """Sample input dataset at map coordinates
     
     This is a generic sampling function, and will return value derived from window (dimensions pad*2+1) around each point
@@ -945,6 +945,8 @@ def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
     By default, assumes input map coords are identical to ds srs.  If different, specify xy_srs to enable conversion.
     """
     from pygeotools.lib import iolib, malib
+
+    #Should offer option to fit plane to points and then sample values with sub-pixel precision
 
     shape = (ds.RasterYSize, ds.RasterXSize)
     gt = ds.GetGeoTransform()
@@ -973,9 +975,10 @@ def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
     #Define x and y sample windows
     xwin=pad*2+1
     ywin=pad*2+1
+
     #This sets the minimum number of valid pixels, default 50%
-    min_samp_perc = 50 
     min_samp = int(np.ceil((min_samp_perc/100.)*xwin*ywin))
+
     #Create circular mask to simulate spot
     #This only makes sense for for xwin > 3 
     if circ:
@@ -990,7 +993,11 @@ def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
     #print("Valid extent: %i" % pX_int.size)
 
     #Create empty array to hold output
-    stats = np.full((pX_int.size, 2), b_ndv, dtype=np_dtype)
+    #Added the valid pixel count quickly, should clean this up for more systematic stats return at each sample
+    if count:
+        stats = np.full((pX_int.size, 3), b_ndv, dtype=np_dtype)
+    else:
+        stats = np.full((pX_int.size, 2), b_ndv, dtype=np_dtype)
 
     r = gdal.GRA_NearestNeighbour
     #r = gdal.GRA_Cubic
@@ -1010,16 +1017,24 @@ def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, circ=False):
                 samp_mad = malib.mad(samp)
                 stats[i][0] = samp_med 
                 stats[i][1] = samp_mad
+                if count:
+                    stats[i][2] = samp.count()
             else:
                 stats[i][0] = samp[0]
                 stats[i][1] = 0
+                if count:
+                    stats[i][2] = 1
+
             #vals, resid, coef = ma_fitplane(samp, gt=[0, gt[1], 0, 0, 0, gt[5]], perc=None)
             #Compute slope and aspect from plane
             #rmse = malib.rmse(resid)
 
     stats = np.ma.masked_equal(stats, b_ndv)
     #Create empty array with as input points
-    out = np.full((pX.size, 2), b_ndv, dtype=np_dtype)
+    if count:
+        out = np.full((pX.size, 3), b_ndv, dtype=np_dtype)
+    else:
+        out = np.full((pX.size, 2), b_ndv, dtype=np_dtype)
     #Populate with valid samples
     out[common_mask, :] = stats
     out = np.ma.masked_equal(out, b_ndv)
