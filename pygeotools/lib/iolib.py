@@ -557,3 +557,27 @@ def get_auth():
     auth = HTTPDigestAuth(uname, pw)
     #wget -A'h8v4*snow_fraction.tif' --user=uname --password=pw
     return auth
+
+def readcsv(fn):
+    """
+    Wrapper to read arbitrary csv, check for header
+
+    Needs some work to be more robust, quickly added for demcoreg sampling
+    """
+    import csv
+    #Check first line for header
+    with open(fn, 'r') as f:
+        reader = csv.DictReader(f)
+        hdr = reader.fieldnames
+
+    #Assume there is a header on first line, check 
+    skiprows = 1
+    if np.all(f.isdigit() for f in hdr):
+        hdr = None
+        skiprows = 0
+
+    #Check header for lat/lon/z or x/y/z tags
+
+    #Should probably do genfromtxt here if header exists and dtype of cols is variable
+    pts = np.loadtxt(fn, delimiter=',', skiprows=skiprows, dtype=None)
+    return pts
