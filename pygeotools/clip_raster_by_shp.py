@@ -50,12 +50,12 @@ def main():
         sys.exit("Unable to find shp_fn: %s" % shp_fn)
 
     #Do the clipping
-    r = geolib.raster_shpclip(r_fn, shp_fn, extent=args.extent, bbox=args.bbox, pad=args.pad, invert=args.invert)
+    r, r_ds = geolib.raster_shpclip(r_fn, shp_fn, extent=args.extent, bbox=args.bbox, pad=args.pad, invert=args.invert)
 
     #Write out
     out_fn = os.path.splitext(r_fn)[0]+'_shpclip.tif'
     #Note: passing r_fn here as the src_ds
-    iolib.writeGTiff(r, out_fn, r_fn) 
+    iolib.writeGTiff(r, out_fn, r_ds) 
 
 if __name__ == "__main__":
     main()

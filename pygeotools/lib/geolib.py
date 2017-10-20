@@ -767,10 +767,11 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
         out_extent = r_extent 
     elif extent == 'shp':
         out_extent = shp_extent
-        #Add padding around shp_extent
-        #Should implement buffer here
-        if pad is not None:
-            out_extent = pad_extent(out_extent, width=pad)
+
+    #Add padding around shp_extent
+    #Should implement buffer here
+    if pad is not None:
+        out_extent = pad_extent(out_extent, width=pad)
 
     print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
     verbose = False
@@ -790,7 +791,9 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
             mask = ~(mask)
         #Now apply the mask
         r = np.ma.array(r, mask=mask)
-    return r
+    #Return both the array and the dataset, needed for writing out
+    #Should probably just write r to r_ds and return r_ds 
+    return r, r_ds
 
 def shp2geom(shp_fn):
     """Extract geometries from input shapefile
