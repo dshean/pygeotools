@@ -21,7 +21,7 @@ from pygeotools.lib import geolib
 def getparser():
     parser = argparse.ArgumentParser(description="Clip input raster by input shp polygons")
     #Should add support for similar arguments as in warplib - arbitrary extent, res, etc
-    parser.add_argument('-extent', type=str, default='raster', choices=['raster','shp'], 
+    parser.add_argument('-extent', type=str, default='raster', choices=['raster','shp','intersection','union'], 
                         help='Desired output extent')
     parser.add_argument('-bbox', action='store_true', help='Clip raster to shp bounding box, but dont mask')
     parser.add_argument('-pad', type=float, default=None, help='Padding around shp extent, in raster units')

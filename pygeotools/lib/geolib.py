@@ -749,7 +749,10 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
     r_ds = iolib.fn_getds(r_fn)
     r_srs = get_ds_srs(r_ds)
     r_extent = ds_extent(r_ds)
+    r_extent_geom = bbox2geom(r_extent)
 
+    #NOTE: want to add spatial filter here to avoid reprojeting global RGI polygons, for example
+    
     shp_ds = ogr.Open(shp_fn)
     lyr = shp_ds.GetLayer()
     shp_srs = lyr.GetSpatialRef()
@@ -758,6 +761,7 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
         lyr = shp_ds.GetLayer()
     #This returns xmin, ymin, xmax, ymax
     shp_extent = lyr_extent(lyr)
+    shp_extent_geom = bbox2geom(shp_extent)
 
     #Define the output - can set to either raster or shp
     #Could accept as cl arg
@@ -767,6 +771,13 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
         out_extent = r_extent 
     elif extent == 'shp':
         out_extent = shp_extent
+    elif extent == 'intersection':
+        out_extent = geom_intersection([r_extent_geom, shp_extent_geom])
+    elif extent == 'union':
+        out_extent = geom_union([r_extent_geom, shp_extent_geom])
+    else:
+        print("Unexpected extent specification, reverting to input raster extent")
+        out_extent = 'raster'
 
     #Add padding around shp_extent
     #Should implement buffer here
@@ -774,7 +785,7 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
         out_extent = pad_extent(out_extent, width=pad)
 
     print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
-    verbose = False
+    verbose = True 
     if verbose:
         print(shp_extent) 
         print(r_extent)
@@ -1978,6 +1989,7 @@ srtm1_fn = '/nobackup/deshean/rpcdem/hma/srtm1/hma_srtm_gl1.vrt'
 site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, refdem_fn=srtm1_fn)
 
 #bbox should be [minlon, maxlon, minlat, maxlat]
+#bbox should be [min_x, max_x, min_y, max_y]
 def bbox2geom(bbox, t_srs=None):
     #Check bbox
     #bbox = numpy.array([-180, 180, 60, 90])
