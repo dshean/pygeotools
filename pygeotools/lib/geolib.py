@@ -848,22 +848,33 @@ def geom2shp(geom, out_fn, fields=False):
         field_defn = ogr.FieldDefn("name", ogr.OFTString)
         field_defn.SetWidth(128)
         out_lyr.CreateField(field_defn)
+        field_defn = ogr.FieldDefn("path", ogr.OFTString)
+        field_defn.SetWidth(254)
+        out_lyr.CreateField(field_defn)
         #field_defn = ogr.FieldDefn("date", ogr.OFTString)
         #This allows sorting by date
         field_defn = ogr.FieldDefn("date", ogr.OFTInteger)
         field_defn.SetWidth(32)
         out_lyr.CreateField(field_defn)
+        field_defn = ogr.FieldDefn("decyear", ogr.OFTReal)
+        field_defn.SetPrecision(8)
+        field_defn.SetWidth(64)
+        out_lyr.CreateField(field_defn)
     out_feat = ogr.Feature(out_lyr.GetLayerDefn())
     out_feat.SetGeometry(geom)
     if fields:
-        out_feat_name = os.path.splitext(out_fn)[0]
-        out_feat.SetField("name", out_feat_name)
+        #Hack to force output extesion to tif, since out_fn is shp
+        out_path = os.path.splitext(out_fn)[0] + '.tif'
+        out_feat.SetField("name", os.path.split(out_path)[-1])
+        out_feat.SetField("path", out_path)
         #Try to extract a date from input raster fn
         out_feat_date = timelib.fn_getdatetime(out_fn)
         if out_feat_date is not None:
-            out_feat_date = int(out_feat_date.strftime('%Y%m%d'))
+            datestamp = int(out_feat_date.strftime('%Y%m%d'))
             #out_feat_date = int(out_feat_date.strftime('%Y%m%d%H%M'))
-            out_feat.SetField("date", out_feat_date)
+            out_feat.SetField("date", datestamp)
+            decyear = timelib.dt2decyear(out_feat_date)
+            out_feat.SetField("decyear", decyear)
     out_lyr.CreateFeature(out_feat)
     out_ds = None
     #return status?

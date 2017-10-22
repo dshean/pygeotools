@@ -40,10 +40,10 @@ def main():
         print(n, fn)
         if os.path.exists(fn):
             shp_fn = os.path.splitext(fn)[0]+'.shp'
-            if not os.path.exists(shp_fn):
-                ds = gdal.Open(fn)
-                geom = geolib.get_outline(ds)
-                geolib.geom2shp(geom, shp_fn, fields=True)
+            #if not os.path.exists(shp_fn):
+            ds = gdal.Open(fn)
+            geom = geolib.get_outline(ds)
+            geolib.geom2shp(geom, shp_fn, fields=True)
             merge_fn_list.append(shp_fn)
 
     #This is a hack to merge, should just create new output and write all features
