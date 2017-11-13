@@ -39,6 +39,8 @@ tp_srs.ImportFromProj4(tp_proj)
 
 #Vertical CS setup
 #See: http://lists.osgeo.org/pipermail/gdal-dev/2011-August/029856.html
+#https://github.com/OSGeo/proj.4/wiki/VerticalDatums
+
 #Note: must have gtx grid files in /usr/local/share/proj
 #Should add a check for these
 #cd /usr/local/share/proj
@@ -1564,7 +1566,9 @@ def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hil
     """
     if ds is None:
         ds = mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32)
-    return gdal_mem_ds(ds, processing=processing, returnma=returnma)
+    b = ds.GetRasterBand(1)
+    b.WriteArray(ma)
+    return gdaldem_mem_ds(ds, processing=processing, returnma=returnma)
 
 def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
     """
