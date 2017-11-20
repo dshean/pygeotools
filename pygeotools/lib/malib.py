@@ -1421,7 +1421,7 @@ def mad(a, axis=None, c=1.4826):
         if axis is None:
             out = fast_median(np.fabs(a - fast_median(a))) * c
         else:
-            out = np.ma.median(np.ma.fabs(a - np.ma.median(a, axis=0)), axis=0)
+            out = np.ma.median(np.ma.fabs(a - np.ma.median(a, axis=axis)), axis=axis) * c
     else:
         out = np.ma.masked
     return out
