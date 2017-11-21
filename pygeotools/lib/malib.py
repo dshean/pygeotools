@@ -359,6 +359,7 @@ class DEMStack:
             out_args['std'] = self.stack_std.filled(np.nan)
         if self.med:
             out_args['med'] = self.stack_med.filled(np.nan)
+            out_args['nmad'] = self.stack_nmad.filled(np.nan)
         if self.trend:
             out_args['trend'] = self.stack_trend.filled(np.nan)
             out_args['intercept'] = self.stack_intercept.filled(np.nan)
@@ -466,6 +467,7 @@ class DEMStack:
             statlist = ['count', 'mean', 'std', 'min', 'max']
             if self.med:
                 statlist.append('med')
+                statlist.append('nmad')
             if all([s in data for s in statlist]):
                 print("Loading stats")
                 self.stack_count = np.ma.masked_equal(data['count'], 0).astype(np.uint16)
@@ -475,6 +477,7 @@ class DEMStack:
                 self.stack_max = np.ma.fix_invalid(data['max'], fill_value=-9999).astype(self.dtype)
                 if self.med:
                     self.stack_med = np.ma.fix_invalid(data['med'], fill_value=-9999).astype(self.dtype)
+                    self.stack_nmad = np.ma.fix_invalid(data['nmad'], fill_value=-9999).astype(self.dtype)
             else:
                 if self.ma_stack.shape[0] > 1:
                     self.compute_stats()
@@ -540,6 +543,9 @@ class DEMStack:
             else:
                 self.stack_med = np.ma.median(self.ma_stack, axis=0).astype(self.dtype)
             self.stack_med.set_fill_value(-9999)
+            print("Compute stack nmad")
+            self.stack_nmad = mad(self.ma_stack, axis=0).astype(self.dtype)
+            self.stack_nmad.set_fill_value(-9999)
 
     def compute_trend(self):
         print("Compute stack linear trend")
@@ -554,6 +560,7 @@ class DEMStack:
         stat_list = ['stack_count', 'stack_mean', 'stack_std', 'stack_min', 'stack_max']
         if self.med:
             stat_list.append('stack_med')
+            stat_list.append('stack_nmad')
         if any([not hasattr(self, i) for i in stat_list]):
             self.compute_stats()
         print("Writing out stats")
@@ -571,6 +578,7 @@ class DEMStack:
         iolib.writeGTiff(self.stack_max, out_prefix+'_max.tif', ds)
         if self.med:
             iolib.writeGTiff(self.stack_med, out_prefix+'_med.tif', ds)
+            iolib.writeGTiff(self.stack_nmad, out_prefix+'_nmad.tif', ds)
 
     def write_trend(self):
         #stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std', 'stack_rsquared']
@@ -1410,20 +1418,26 @@ def fast_median(a):
         out = np.ma.masked
     return out
 
-def mad(a, axis=None, c=1.4826):
+def mad(a, axis=None, c=1.4826, return_med=False):
     """Compute normalized median absolute difference
-    
+   
+    Can also return median array, as this can be expensive, and often we want both med and nmad
+
     Note: 1.4826 = 1/0.6745
     """
     a = checkma(a)
     #return np.ma.median(np.fabs(a - np.ma.median(a))) / c
     if a.count() > 0:
         if axis is None:
-            out = fast_median(np.fabs(a - fast_median(a))) * c
+            med = fast_median(a)
+            out = fast_median(np.fabs(a - med)) * c
         else:
-            out = np.ma.median(np.ma.fabs(a - np.ma.median(a, axis=axis)), axis=axis) * c
+            med = np.ma.median(a, axis=axis)
+            out = np.ma.median(np.ma.fabs(a - med), axis=axis) * c
     else:
         out = np.ma.masked
+    if return_med:
+        out = (out, med)
     return out
 
 #Percentile values
