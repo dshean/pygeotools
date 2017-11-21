@@ -26,6 +26,7 @@ def getparser():
     parser.add_argument('-bbox', action='store_true', help='Clip raster to shp bounding box, but dont mask')
     parser.add_argument('-pad', type=float, default=None, help='Padding around shp extent, in raster units')
     parser.add_argument('-invert', action='store_true', help='Invert the input polygons before clipping')
+    parser.add_argument('-out_fn', type=str, default=None, help='Output raster filename (default: *_shpclip.tif)')
     parser.add_argument('r_fn', type=str, help='Input raster filename')
     parser.add_argument('shp_fn', type=str, help='Input shp filename')
     return parser
@@ -53,7 +54,9 @@ def main():
     r, r_ds = geolib.raster_shpclip(r_fn, shp_fn, extent=args.extent, bbox=args.bbox, pad=args.pad, invert=args.invert)
 
     #Write out
-    out_fn = os.path.splitext(r_fn)[0]+'_shpclip.tif'
+    out_fn = args.out_fn
+    if out_fn is None:
+        out_fn = os.path.splitext(r_fn)[0]+'_shpclip.tif'
     #Note: passing r_fn here as the src_ds
     iolib.writeGTiff(r, out_fn, r_ds) 
 
