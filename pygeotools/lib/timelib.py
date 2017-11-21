@@ -103,6 +103,8 @@ def fn_getdatetime_list(fn):
     #Note: Want to be less restrictive here - could have a mix of YYYYMMDD_HHMM, YYYYMMDD and YYYY in filename
     #Should probably search for all possibilities, then prune  
     #NOTE: these don't include seconds in the time
+    #NOTE: could have 20130304_1510__20130304__whatever in filename
+    #The current approach will only catch the first datetime 
     dstr = None
     dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])[_T](?:0[0-9]|1[0-9]|2[0-3])[0-5][0-9]', fn)
     if not dstr:
