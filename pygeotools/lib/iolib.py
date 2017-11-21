@@ -179,10 +179,14 @@ def get_sub_dim(src_ds, scale=None, maxdim=1024):
         nl = int(round(nl/scale))
     return ns, nl
 
+def fn_getma_sub(fn, bnum=1, scale=None, maxdim=1024.): 
+    ds = gdal.Open(fn)
+    return ds_getma_sub(ds, bnum, scale, maxdim)
+
 #Load a subsampled array
 #Can specify scale factor or max dimension
 #No need to load the entire dataset for stats computation
-def gdal_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):    
+def ds_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):    
     """Load a subsampled array, rather than full resolution
 
     This is useful when working with large rasters

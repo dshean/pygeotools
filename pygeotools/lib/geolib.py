@@ -892,12 +892,12 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
 
     This generates a wkt polygon outline of valid data for the input raster
     
-    Want to limit the dimensions of a, as notmasked_edges is slow: a = iolib.gdal_getma_sub(ds, scale=scale)
+    Want to limit the dimensions of a, as notmasked_edges is slow: a = iolib.ds_getma_sub(ds, scale=scale)
 
     """
     gt = np.array(ds.GetGeoTransform())
     from pygeotools.lib import iolib
-    a = iolib.gdal_getma_sub(ds, scale=scale)
+    a = iolib.ds_getma_sub(ds, scale=scale)
     #Create empty geometry
     geom = ogr.Geometry(ogr.wkbPolygon)
     #Check to make sure we have unmasked data
