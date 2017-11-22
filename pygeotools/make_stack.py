@@ -7,8 +7,8 @@ import argparse
 from pygeotools.lib import malib
 
 #Hack to work around file open limit
-import resource
-resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+#import resource
+#resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 def getparser():
     parser = argparse.ArgumentParser(description='Utility to warp stacks of rasters to the same res/extent/proj')

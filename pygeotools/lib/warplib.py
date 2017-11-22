@@ -32,8 +32,8 @@ gtif_drv = iolib.gtif_drv
 gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 #Need to set in the shell
 #ulimit -S -n 2048
-import resource
-resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+#import resource
+#resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
 def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None, verbose=True):
     """Warp an input dataset with predetermined arguments specifying output res/extent/srs
