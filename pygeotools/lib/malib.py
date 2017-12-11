@@ -1464,6 +1464,15 @@ def calcperc(b, perc=(0.1,99.9)):
     #high = scipy.stats.scoreatpercentile(b.data.flatten(), perc[1], (bma_low, bma_high))
     return low, high
 
+def calcperc_sym(b, perc=(0.1,99.9)):
+    """
+    Get symmetrical percentile values
+    Useful for determining clim centered on 0 for difference maps
+    """
+    clim = np.max(np.abs(calcperc(b, perc)))
+    #clim = (-clim, clim)
+    return -clim, clim
+
 def iqr(b, perc=(25, 75)):
     """Inter-quartile range
     """
