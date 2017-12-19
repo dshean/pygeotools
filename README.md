@@ -1,5 +1,5 @@
 # pygeotools
-Libraries and command line tools for geospatial data processing/analysis
+Libraries and command line tools for geospatial data processing and analysis
 
 ## Features
 - Resample/warp rasters to common resolution/extent/projection
