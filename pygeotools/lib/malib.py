@@ -84,7 +84,13 @@ class DEMStack:
                 self.outdir = outdir
                 #raise IOError('Specified output directory does not exist')
 
-        if self.stack_fn is None:
+        #Flag specifying whether user has specified output stack filename
+        #Hack to prevent new stack_fn generation if files are missing or sorted
+        self.user_stack_fn = False
+        if self.stack_fn is not None:
+            self.user_stack_fn = True 
+
+        if not self.user_stack_fn:
             if self.fn_list:
                 self.get_stack_fn()
             else:
@@ -147,10 +153,11 @@ class DEMStack:
             self.savestack()
 
     def get_stack_fn(self):
-        self.stack_fn = os.path.splitext(os.path.split(self.fn_list[0])[-1])[0] + '_' \
-                        + os.path.splitext(os.path.split(self.fn_list[-1])[1])[0] \
-                        + '_stack_%i' % len(self.fn_list) + '.npz'
-        self.stack_fn = os.path.join(self.outdir, self.stack_fn)
+        if not self.user_stack_fn:
+            self.stack_fn = os.path.splitext(os.path.split(self.fn_list[0])[-1])[0] + '_' \
+                            + os.path.splitext(os.path.split(self.fn_list[-1])[1])[0] \
+                            + '_stack_%i' % len(self.fn_list) + '.npz'
+            self.stack_fn = os.path.join(self.outdir, self.stack_fn)
 
     #p = os.path.join(topdir, d, '*_warp.tif'))
     def get_fn_list(p):
