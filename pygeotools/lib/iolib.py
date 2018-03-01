@@ -486,9 +486,12 @@ def cpu_count(logical=True):
 def setstripe(dir, threads=cpu_count()):
     if not os.path.exists(dir): 
         os.makedirs(dir)
-    cmd = ['lfs', 'setstripe', dir, '--count', str(threads)]
-    print(' '.join(cmd))
-    subprocess.call(cmd)
+    #Use 'df -T' to determine filesystem of directory
+    #Can do this with psutil Python lib, but need to also find mount point of file
+    if 'lustre' in subprocess.check_output(['df','-T',dir]):
+        cmd = ['lfs', 'setstripe', dir, '--count', str(threads)]
+        print(' '.join(cmd))
+        subprocess.call(cmd)
 
 #This is a shared directory for files like LULC, used by multiple tools 
 #Default location is $HOME/data
