@@ -117,7 +117,8 @@ def main():
         ref = iolib.ds_getma(ref_ds)
         param = map(float, param[1:])
         r_fltr = filtlib.dz_fltr_ma(r, ref, rangelim=param)
-        param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
+        #param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
+        param_str = '_{0:0.0f}_{1:0.0f}'.format(*param)
     else:
         sys.exit("No filter type specified")
 
