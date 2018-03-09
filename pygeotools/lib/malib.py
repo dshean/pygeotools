@@ -36,7 +36,7 @@ from pygeotools.lib import iolib
 #Want to add error attributes
 #Want to make consistent with stack_count vs count keywords/attributes
 class DEMStack:
-    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, med=False, stats=True, save=True, sort=True, datestack=True):
+    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, med=False, stats=True, save=True, sort=True, datestack=True, mask_geom=None, min_dt_ptp=np.nan, n_thresh=2):
         self.sort = sort
         if self.sort:
             #This sorts filenames, should probably sort by datetime to be safe
@@ -53,9 +53,11 @@ class DEMStack:
         self.stats = stats
         self.save = save
         self.datestack = datestack
+        self.mask_geom = mask_geom
         #This is the minimum number of arrays in stack to compute trend
-        self.n_thresh = 2
-        self.min_dt_ptp = np.nan 
+        self.n_thresh = n_thresh 
+        #This is the minimum number of days between first and last timestamp to compute trend
+        self.min_dt_ptp = min_dt_ptp
 
         #Use this to limit memory use and filesizes
         #self.dtype = 'float32'
@@ -113,23 +115,29 @@ class DEMStack:
                     #self.write_stats()
                 #self.savestack()
         else:
+            self.ma_stack = None
             self.makestack()
-            #Initialize source and error lists
-            self.source = ['None' for i in self.fn_list]
-            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
-            #self.get_source()
-            self.error_dict_list = [None for i in self.fn_list]
-            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
-            #self.get_error_dict_list()
-            self.error = np.ma.zeros(len(self.fn_list))
-            #TODO: This needs to be fixed, source_dict moved to stack_view.py 
-            #self.get_error()
-            self.get_date_list() 
-            if sort:
-                sort_idx = self.get_sortorder()
-                if np.any(self.date_list_o != self.date_list_o[sort_idx]):
-                    self.sort_in_place(sort_idx)
-            self.finish()
+            if self.ma_stack is not None:
+                if self.mask_geom is not None:
+                    from pygeotools.lib import geolib
+                    mask = geolib.geom2mask(self.mask_geom, self.get_ds())
+                    self.ma_stack = np.ma.array(self.ma_stack, mask=np.broadcast_to(mask, self.ma_stack.shape))
+                #Initialize source and error lists
+                self.source = ['None' for i in self.fn_list]
+                #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+                #self.get_source()
+                self.error_dict_list = [None for i in self.fn_list]
+                #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+                #self.get_error_dict_list()
+                self.error = np.ma.zeros(len(self.fn_list))
+                #TODO: This needs to be fixed, source_dict moved to stack_view.py 
+                #self.get_error()
+                self.get_date_list() 
+                if sort:
+                    sort_idx = self.get_sortorder()
+                    if np.any(self.date_list_o != self.date_list_o[sort_idx]):
+                        self.sort_in_place(sort_idx)
+                self.finish()
 
     def finish(self):
         if self.datestack:
@@ -241,22 +249,25 @@ class DEMStack:
         from pygeotools.lib import geolib
         #Returns True if empty
         bad_ds_idx = np.array([geolib.ds_IsEmpty(ds) for ds in ds_list])
-        if np.any(bad_ds_idx):
-            print("\n%i empty ds removed:" % len(bad_ds_idx.nonzero()[0]))
-            print(np.array(self.fn_list)[bad_ds_idx])
-            self.fn_list = np.array(self.fn_list)[~bad_ds_idx].tolist()
-            print("%i valid input ds\n" % len(self.fn_list)) 
-            self.get_stack_fn()
-        print("Creating ma_stack")
-        #Note: might not need ma here in the 0 axis - shouldn't be any missing data
-        #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
-        self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
-        #Might want to convert to proj4
-        self.proj = ds_list[0].GetProjectionRef()
-        self.gt = ds_list[0].GetGeoTransform()
-        #Now set these for stack, regardless of input
-        self.get_res()
-        self.get_extent()
+        if np.all(bad_ds_idx):
+            print("\nNo valid ds remain")
+        else:
+            if np.any(bad_ds_idx):
+                print("\n%i empty ds removed:" % len(bad_ds_idx.nonzero()[0]))
+                print(np.array(self.fn_list)[bad_ds_idx])
+                self.fn_list = np.array(self.fn_list)[~bad_ds_idx].tolist()
+                print("%i valid input ds\n" % len(self.fn_list)) 
+                self.get_stack_fn()
+            print("Creating ma_stack")
+            #Note: might not need ma here in the 0 axis - shouldn't be any missing data
+            #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
+            self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
+            #Might want to convert to proj4
+            self.proj = ds_list[0].GetProjectionRef()
+            self.gt = ds_list[0].GetGeoTransform()
+            #Now set these for stack, regardless of input
+            self.get_res()
+            self.get_extent()
 
     def get_sortorder(self):
         sort_idx = np.argsort(self.date_list)
