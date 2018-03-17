@@ -110,11 +110,11 @@ def fn_getdatetime_list(fn):
     if not dstr:
         dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:0[0-9]|1[0-9]|2[0-3])[0-5][0-9]', fn)
     if not dstr:
-        dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:_|-)', fn)
+        dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:$|_|-)', fn)
         #This should pick up dates separated by a dash
         #dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])', fn)
     if not dstr:
-        dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:_|-)', fn)
+        dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:$|_|-)', fn)
     #This is for USGS archive filenames
     if not dstr:
         dstr = re.findall(r'[0-3][0-9][a-z][a-z][a-z][0-9][0-9]', fn)
