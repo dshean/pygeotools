@@ -1607,6 +1607,135 @@ def iv(b, **kwargs):
     return fig
 
 #=======================
+#Binning
+#=======================
+
+"""
+bin_range (min and max inclusive)
+nbins
+bin_width
+
+can specify:
+    bin_range and nbins (bin_width calculated)
+    bin_range and bin_width (nbins calculated)
+    nbins and bin_width (bin_range extracted from input data)
+    nbins (bin_range extracted from input data, bin_width calculated)
+    bin_width (bin_range extracted from input data, nbins calculated)
+
+bin_range can be calculated for min and max values, or percentile (0.01, 99.99)
+"""
+
+"""
+def bin_boxplot(x, y):
+    import matpolotlib.pyplot as plt
+    #Define bins, extract samples for each bin, then feed list of arrays to boxplot
+    bp = plt.boxplot(x)
+    for key, value in bp.items():
+        res[key] = [v.get_data() for v in value]
+    for medline in bp['medians']:
+        linedata = medline.get_ydata()
+        median = linedata[0]
+"""
+
+#Define bin edges based on specfied bin width
+def get_bins(x, bin_width=100.0, bin_range=None):
+    #Define min and max elevation
+    if bin_range is None:
+        bin_range = list(calcperc(x, perc=(0.01, 99.99)))
+    bin_range[0] = np.floor(bin_range[0]/bin_width) * bin_width
+    bin_range[1] = np.ceil(bin_range[1]/bin_width) * bin_width
+    #Compute bin edges and centers
+    bin_edges = np.arange(bin_range[0], bin_range[1]+ bin_width, bin_width)
+    bin_centers = bin_edges[:-1] + np.diff(bin_edges)/2.0
+    return bin_edges, bin_centers
+
+#Compute statistic for each bin using scipy binned_statistic function
+def bin_stats(x, y, stat='median', nbins=128, bin_range=None):
+    import scipy.stats
+    if bin_range is None:
+        bin_range = (x.min(), x.max())
+    bin_width = (bin_range[1] - bin_range[0]) / nbins
+    print("Computing 1-degree bin statistics: %s" % stat)
+    bin_stat, bin_edges, bin_number = scipy.stats.binned_statistic(x, y, statistic=stat, \
+            bins=nbins, range=bin_range)
+    bin_centers = bin_edges[:-1] + bin_width/2.
+    bin_stat = np.ma.masked_invalid(bin_stat)
+    return bin_stat, bin_edges, bin_centers
+
+#Compute values for 2D histogram
+def get_2dhist(x, y, xlim=None, ylim=None, xint=None, yint=None, nbins=(128,128)):
+    from pygeotools.lib import malib
+    #Should compute number of bins automatically based on input values, xlim and ylim
+    common_mask = ~(malib.common_mask([x,y]))
+    x = x[common_mask]
+    y = y[common_mask]
+    if xlim is None:
+        #xlim = (x.min(), x.max())
+        xlim = malib.calcperc(x, (0.1, 99.9))
+    if ylim is None:
+        #ylim = (y.min(), y.max())
+        ylim = malib.calcperc(y, (0.1, 99.9))
+    #Note, round to nearest meter here
+    #xlim = np.rint(np.array(xlim))
+    xlim = np.array(xlim)
+    ylim = np.array(ylim)
+    if xint is not None:
+        xedges = np.arange(xlim[0], xlim[1]+xint, xint)
+    else:
+        xedges = nbins[0]
+
+    if yint is not None:
+        yedges = np.arange(ylim[0], ylim[1]+yint, yint)
+    else:
+        yedges = nbins[1]
+
+    H, xedges, yedges = np.histogram2d(x,y,range=[xlim,ylim],bins=[xedges, yedges])
+    H = H.T
+    #Mask any empty bins
+    Hmasked = np.ma.masked_where(H==0,H)
+    return Hmasked, xedges, yedges
+
+#Generate bins for variable z, then compute stats for another variable (x) within those bins
+#Assumes both z and x have identical shape and 1-to-1 correspondence of array indices
+#For example, calculate elevation change stats or mass balance for 100-m elevation bins
+#z would be DEM, x would be identical dz map
+def bin_x_by_z(x, z, bin_width=10.0):
+    z_bin_edges, z_bin_centers = get_bins(z, bin_width)
+    z_bin_count, z_bin_edges = np.histogram(z, bins=z_bin_edges)
+
+    x_bin_med = np.ma.masked_all_like(z_bin_count)
+    x_bin_nmad = np.ma.masked_all_like(z_bin_count)
+
+    #Get bin indices for each sample
+    idx = np.digitize(z, z_bin_edges)
+
+    x_bin_dict = {}
+    for bin_n in range(z_bin_centers.size):
+        x_bin_samp = x[(idx == bin_n+1)]
+        #Create a nested dictionary to store values for this bin
+        x_bin_dict[bin_n] = {}
+        #Preserve bin information, based on z
+        x_bin_dict[bin_n]['z_center'] = z_bin_centers[bin_n]
+        x_bin_dict[bin_n]['z_edges'] = z_bin_edges[bin_n:bin_n+2]
+        x_bin_dict[bin_n]['z_count'] = z_bin_count[bin_n] 
+
+        x_bin_dict[bin_n]['values'] = x_bin_samp
+        #x_bin_dict[bin_n]['count'] = x_bin_samp.count()
+        #This should be restricted to valid values
+        x_bin_dict[bin_n]['count'] = x_bin_samp.size
+
+        if x_bin_dict[bin_n]['count'] > 0:
+            x_bin_dict[bin_n]['med'] = fast_median(x_bin_samp)
+            x_bin_dict[bin_n]['nmad'] = mad(x_bin_samp)
+            x_bin_dict[bin_n]['mean'] = x_bin_samp.mean()
+            x_bin_dict[bin_n]['std'] = x_bin_samp.std()
+
+    #Can then extract specific values for all bins like so
+    #x_bin_dict_vals = [i['values'] for i in x_bin_dict]
+    #plt.boxplot(x_bin_dict_vals)
+    return x_bin_dict
+
+#=======================
 #Gridding 
 #=======================
 
