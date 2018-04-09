@@ -1664,17 +1664,16 @@ def bin_stats(x, y, stat='median', nbins=128, bin_range=None):
 
 #Compute values for 2D histogram
 def get_2dhist(x, y, xlim=None, ylim=None, xint=None, yint=None, nbins=(128,128)):
-    from pygeotools.lib import malib
     #Should compute number of bins automatically based on input values, xlim and ylim
-    common_mask = ~(malib.common_mask([x,y]))
+    common_mask = ~(common_mask([x,y]))
     x = x[common_mask]
     y = y[common_mask]
     if xlim is None:
         #xlim = (x.min(), x.max())
-        xlim = malib.calcperc(x, (0.1, 99.9))
+        xlim = calcperc(x, (0.1, 99.9))
     if ylim is None:
         #ylim = (y.min(), y.max())
-        ylim = malib.calcperc(y, (0.1, 99.9))
+        ylim = calcperc(y, (0.1, 99.9))
     #Note, round to nearest meter here
     #xlim = np.rint(np.array(xlim))
     xlim = np.array(xlim)
