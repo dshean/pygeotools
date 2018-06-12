@@ -113,42 +113,51 @@ conus_aea_srs.ImportFromProj4(conus_aea_proj)
 
 #To do for transformations below:
 #Check input order of lon, lat
-#Need to broadcast z=0.0 if z is not specified
-#Check that all inputs have same nonzero length
 
-def cT_helper_ma(x, y, z, in_srs, out_srs):
-    from pygeotools.lib import malib
-    valid_idx = ~(malib.common_mask([x,y,z]))
-    xc, yc, zc = [x[valid_idx], y[valid_idx], z[valid_idx]]
-    xt, yt, zt = cT_helper(xc, yc, zc, in_srs, out_srs)
-    xo = np.ma.masked_all_like(x)
-    yo = np.ma.masked_all_like(y)
-    zo = np.ma.masked_all_like(z)
-    xo[valid_idx] = xt
-    yo[valid_idx] = yt
-    zo[valid_idx] = zt
-    return xo, yo, zo
-
+#Helper for coordinate transformations
+#Input for each coordinate can be float, ndarray, or masked ndarray
 def cT_helper(x, y, z, in_srs, out_srs):
-    """Helper function that wraps osr CoordinatTransformation
-    """
-    x, y, z = np.atleast_1d(x), np.atleast_1d(y), np.atleast_1d(z)
-    #Handle cases where z is 0 - probably a better way to use broadcasting for this
-    if x.shape[0] != z.shape[0]:
-        #Watch out for masked array input here
-        orig_z = z[0]
-        z = np.zeros_like(x)
-        z[:] = orig_z
-    orig_shape = x.shape
+    x = np.atleast_1d(x)
+    y = np.atleast_1d(y)
+    z = np.atleast_1d(z)
+    if x.shape != y.shape:
+        sys.exit("Inconsistent number of x and y points")
+    valid_idx = Ellipsis 
+    #Handle case where we have x array, y array, but a constant z (e.g., 0.0)
+    if z.shape != x.shape:
+        #If a constant elevation is provided
+        if z.shape[0] == 1:
+            orig_z = z
+            z = np.zeros_like(x)
+            z[:] = orig_z
+            if np.ma.is_masked(x):
+                z[np.ma.getmaskarray(x)] = np.ma.masked
+        else:
+            sys.exit("Inconsistent number of z and x/y points")
+    #If any of the inputs is masked, only transform points with all three coordinates available
+    if np.ma.is_masked(x) or np.ma.is_masked(y) or np.ma.is_masked(z):
+        x = np.ma.array(x)
+        y = np.ma.array(y)
+        z = np.ma.array(z)
+        from pygeotools.lib import malib
+        valid_idx = ~(malib.common_mask([x,y,z]))
+    #Prepare (x,y,z) tuples
+    xyz = np.array([x[valid_idx], y[valid_idx], z[valid_idx]]).T
+    #Define coordinate transformation
     cT = osr.CoordinateTransformation(in_srs, out_srs)
-    #x2, y2, z2 = zip(*[cT.TransformPoint(*xyz) for xyz in zip(x, y, z)])
-    x2, y2, z2 = list(zip(*[cT.TransformPoint(*xyz) for xyz in zip(np.ravel(x),np.ravel(y),np.ravel(z))]))
-    if len(x2) == 1:
-        x2, y2, z2 = x2[0], y2[0], z2[0] 
+    #Loop through each point
+    xyz2 = np.array([cT.TransformPoint(xi,yi,zi) for (xi,yi,zi) in xyz]).T
+    #Fill in the masked array
+    if xyz2.shape[1] == 1:
+        xyz2 = xyz2.squeeze()
+        x2, y2, z2 = xyz2[0], xyz2[1], xyz2[2] 
     else:
-        x2 = np.array(x2).reshape(orig_shape)
-        y2 = np.array(y2).reshape(orig_shape)
-        z2 = np.array(z2).reshape(orig_shape)
+        x2 = np.zeros_like(x)
+        y2 = np.zeros_like(y)
+        z2 = np.zeros_like(z)
+        x2[valid_idx] = xyz2[0]
+        y2[valid_idx] = xyz2[1]
+        z2[valid_idx] = xyz2[2]
     return x2, y2, z2
 
 def ll2ecef(lon, lat, z=0.0):
