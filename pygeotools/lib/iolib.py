@@ -555,11 +555,12 @@ def get_auth():
     import getpass
     from requests.auth import HTTPDigestAuth
     #This binds raw_input to input for Python 2
+    input_func = input
     try:
-       input = raw_input
+        input_func = raw_input
     except NameError:
-       pass
-    uname = input("MODSCAG Username:")
+        pass
+    uname = input_func("MODSCAG Username:")
     pw = getpass.getpass("MODSCAG Password:")
     auth = HTTPDigestAuth(uname, pw)
     #wget -A'h8v4*snow_fraction.tif' --user=uname --password=pw
