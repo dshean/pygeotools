@@ -244,7 +244,7 @@ def ll2local(lon, lat, z=0, local_srs=None):
         lonm = lon.mean()
         latm = lat.mean()
         local_srs = localortho(lonm, latm)
-    return cT_helper_ma(lon, lat, z, wgs_srs, local_srs)
+    return cT_helper(lon, lat, z, wgs_srs, local_srs)
 
 def sps2local(x, y, z=0, local_srs=None):
     if local_srs is None:

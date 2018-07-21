@@ -310,6 +310,8 @@ def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
     Efficient for smaller arrays, correclty handles NaN, fills gaps
     """
     dem = malib.checkma(dem)
+    #Convert to float32 so we can fill with nan
+    dem = dem.astype(np.float32)
     newshp = (dem.size, size*size)
     #Force a step size of 1
     t = malib.sliding_window_padded(dem.filled(np.nan), (size, size), (1, 1))
