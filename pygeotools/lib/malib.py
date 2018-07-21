@@ -1780,11 +1780,11 @@ def block_view(A, block=(3, 3)):
     return ast(A, shape= shape, strides= strides)
 
 def sliding_window_padded(a, ws, ss=(1,1), flatten=True):
-    colpad = ws[0]/2
+    colpad = ws[0]//2
     col_a = np.empty((a.shape[0],colpad))
     col_a[:] = np.nan
     a = np.column_stack([col_a, a, col_a])
-    rowpad = ws[1]/2
+    rowpad = ws[1]//2
     row_a = np.empty((rowpad, a.shape[1]))
     row_a[:] = np.nan
     a = np.row_stack([row_a, a, row_a])
