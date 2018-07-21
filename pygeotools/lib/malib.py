@@ -36,7 +36,7 @@ from pygeotools.lib import iolib
 #Want to add error attributes
 #Want to make consistent with stack_count vs count keywords/attributes
 class DEMStack:
-    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, med=False, stats=True, save=True, sort=True, datestack=True, mask_geom=None, min_dt_ptp=np.nan, n_thresh=2):
+    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, robust=False, med=False, stats=True, save=True, sort=True, datestack=True, mask_geom=None, min_dt_ptp=np.nan, n_thresh=2):
         self.sort = sort
         if self.sort:
             #This sorts filenames, should probably sort by datetime to be safe
@@ -49,6 +49,7 @@ class DEMStack:
         self.extent = extent
         self.srs = srs 
         self.trend = trend
+        self.robust = robust
         self.med = med
         self.stats = stats
         self.save = save
@@ -379,6 +380,7 @@ class DEMStack:
             out_args['med'] = self.stack_med.filled(np.nan)
             out_args['nmad'] = self.stack_nmad.filled(np.nan)
         if self.trend:
+            out_args['robust'] = self.robust
             out_args['trend'] = self.stack_trend.filled(np.nan)
             out_args['intercept'] = self.stack_intercept.filled(np.nan)
             out_args['detrended_std'] = self.stack_detrended_std.filled(np.nan)
@@ -506,6 +508,8 @@ class DEMStack:
                 self.n_thresh = data['n_thresh']
             if 'min_dt_ptp' in data:
                 self.min_dt_ptp = data['min_dt_ptp']
+            if 'robust' in data: 
+                self.robust = data['robust']
             #statlist = ['trend', 'intercept', 'detrended_std', 'rsquared']
             statlist = ['trend', 'intercept', 'detrended_std']
             if all([s in data for s in statlist]):
@@ -632,108 +636,26 @@ class DEMStack:
     """
 
     #Compute linear regression for every pixel in stack
+    #Output in m/day
     def linreg(self, rsq=False, conf_test=False):
-        #Only compute where we have n_min unmasked values in time
-        if self.stats:
-            count = self.stack_count
-        else:
-            count = np.ma.masked_equal(self.ma_stack.count(axis=0), 0).astype(np.uint16)
-            count.set_fill_value(0)
-        print("Excluding pixels with count < %i" % self.n_thresh)
-        valid_idx = (count.data >= self.n_thresh)
-        #Want to avoid computing trend where dt is small
-        #Note, actual minimum depends on magnitude of trend
-        #Should force datestack here
+        model='linear'
         if not self.datestack:
             self.compute_dt_stats()
-            #self.write_datestack()
         if np.isnan(self.min_dt_ptp):
-            #max_dt_ptp = self.dt_stack_ptp.max()
             #This could fail if stack contains a small number of inputs
             max_dt_ptp = calcperc(self.dt_stack_ptp, (4, 96))[1]
-            #If no datestack
-            #max_dt_ptp = np.ptp(calcperc(self.date_list_o, (4, 96)))
             self.min_dt_ptp = 0.10 * max_dt_ptp
-        print("Excluding pixels with dt range < %0.2f days" % self.min_dt_ptp) 
-        valid_idx = valid_idx & (self.dt_stack_ptp > self.min_dt_ptp)
-        y_orig = self.ma_stack[:, valid_idx]
-        #Reshape to 2D
-        #origshape = self.ma_stack.shape
-        #newshape = (origshape[0], origshape[1] * origshape[2])
-        #y = self.ma_stack.reshape(newshape)
-        #Extract mask for axis 0 - invert, True where data is available
-        mask = ~(np.ma.getmaskarray(y_orig))
-        #Remove masks, fills with fill_value
-        y = y_orig.data
-        #Independent variable is time ordinal
-        x = self.date_list_o
-        x_mean = x.mean()
-        x = x.data
-        #Prepare matrices
-        X = np.c_[x, np.ones_like(x)]
-        a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
-        b = np.dot(X.T, (mask*y))
-        #Solve for slope/intercept
-        print("Solving for trend")
-        r = np.linalg.solve(a, b.T)
-        #Reshape to original dimensions
-        #r = r.reshape(origshape[1], origshape[2], 2)
-
-        #Create output grids with original dimensions
-        slope = np.ma.masked_all_like(self.ma_stack[0])
-        intercept = np.ma.masked_all_like(self.ma_stack[0])
-        detrended_std = np.ma.masked_all_like(self.ma_stack[0])
-
-        #Fill in the valid indices
-        slope[valid_idx] = r[:,0]
-        intercept[valid_idx] = r[:,1]
-        y_fit = r[:,0]*np.ma.array(x[:,None]*mask, mask=y_orig.mask) + r[:,1]
-        resid = y_orig - y_fit
-        #Note: Should be able to compute std of resid relative to resid mean, as lsq resid mean will be 0
-        resid_std = resid.std(axis=0).data
-        #resid_std = np.sqrt(np.sum(resid**2, axis=0)/resid.count(axis=0))
-        detrended_std[valid_idx] = resid_std
-
-        if rsq:
-            rsquared = np.ma.masked_all_like(self.ma_stack[0])
-            SStot = np.sum((y_orig - y_orig.mean(axis=0))**2, axis=0).data
-            SSres = np.sum(resid**2, axis=0).data
-            count = y_orig.count(axis=0)
-            r2 = 1 - (SSres/SStot)
-            rsquared[valid_idx] = r2
-            #rmse = np.ma.masked_all_like(self.ma_stack[0])
-            #Rrmse = np.sqrt(SSres/count)
-            #rmse[valid_idx] = Rrmse
-
-        if conf_test:
-            SE = np.sqrt(SSres/(count - 2)/np.sum((x - x_mean)**2, axis=0))
-            T0 = r[:,0]/SE
-            alpha = 0.05
-            ta = np.zeros_like(r2)
-            from scipy.stats import t
-            for c in np.unique(count):
-                t1 = abs(t.ppf(alpha/2.0,c-2))
-                ta[(count == c)] = t1
-            sig = np.logical_and((T0 > -ta), (T0 < ta))
-            sigmask = np.zeros_like(valid_idx, dtype=bool)
-            sigmask[valid_idx] = ~sig
-            #SSerr = SStot - SSres
-            #F0 = SSres/(SSerr/(count - 2))
-            #from scipy.stats import f
-            #    f.cdf(sig, 1, c-2)
-            slope = np.ma.array(slope, mask=~sigmask)
-            intercept = np.ma.array(intercept, mask=~sigmask)
-            detrended_std = np.ma.array(detrended_std, mask=~sigmask)
-            rsquared = np.ma.array(rsquared, mask=~sigmask)
-        
-        #slope is in units of m/day since x is ordinal date
-        slope *= 365.25
-        #Filter out clearly bogus values here?
-        self.stack_trend = np.ma.array(slope, dtype=self.dtype)
-        self.stack_intercept = np.ma.array(intercept, dtype=self.dtype)
-        self.stack_detrended_std = np.ma.array(detrended_std, dtype=self.dtype)
+        if self.robust:
+            model='theilsen'
+            #model='ransac'
+        self.stack_trend, self.stack_intercept, self.stack_detrended_std = \
+                ma_linreg(self.ma_stack, self.date_list, dt_stack_ptp=self.dt_stack_ptp, min_dt_ptp=self.min_dt_ptp, \
+                n_thresh=self.n_thresh, model=model, rsq=False, conf_test=False, smooth=False)
+        #self.stack_trend = np.ma.array(self.stack_trend, dtype=self.dtype)
+        #self.stack_intercept = np.ma.array(self.stack_intercept, dtype=self.dtype)
+        #self.stack_detrended_std = np.ma.array(self.stack_detrended_std, dtype=self.dtype)
         #self.stack_rsquared = np.ma.array(rsquared, dtype=self.dtype)
-    
+
     def mean_hillshade(self):
         if hasattr(self, 'stack_med'):
             in_fn = os.path.splitext(self.stack_fn)[0]+'_med.tif'
@@ -1016,40 +938,119 @@ def stack_merge(s1, s2, out_stack_fn=None, sort=True, save=False):
         s.savestack()
     return s
 
+def robust_linreg(x, y, model='theilsen'):
+    from sklearn import linear_model
+    slope = None
+    intercept = None
+    if model == 'linear':
+        m = linear_model.LinearRegression()
+        m.fit(x, y)
+        slope = m.coef_
+        intercept = m.intercept_
+    elif model == 'ransac':
+        m = linear_model.RANSACRegressor()
+        m.fit(x, y)
+        slope = m.estimator_.coef_
+        intercept = m.estimator_.intercept_
+        #inlier_mask = ransac.inlier_mask_
+        #outlier_mask = np.logical_not(inlier_mask)
+    elif model == 'theilsen':
+        m = linear_model.TheilSenRegressor()
+        m.fit(x, y)
+        slope = m.coef_
+        intercept = m.intercept_
+    #xi = np.arange(x.min(), x.max())[:,np.newaxis]
+    #yi = model.predict(xi) 
+    #ax.plot(xi, yi)
+    return(slope[0], intercept)
+
+#Wrapper for multiprocessing
+def do_robust_linreg(arg):
+    date_list_o, y, model = arg
+    y_idx = ~(np.ma.getmaskarray(y))
+    #newaxis is necessary b/c ransac expects 2D input array
+    x = date_list_o[y_idx].data[:,np.newaxis]
+    y = y[y_idx].data
+    return robust_linreg(x, y, model)
+
 #Compute linear regression for every pixel in stack
-def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_test=False):
+#Model options: linear, theilsen, ransac
+#Linear is fast
+#Robust options are slower, but use multiprocessing
+def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, min_dt_ptp=None, smooth=False, \
+        rsq=False, conf_test=False):
     """Compute per-pixel linear regression for stack object
     """
+    #Check type of dt_list
     from pygeotools.lib import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
+
     #Only compute where we have n_thresh unmasked values in time
     count = np.ma.masked_equal(ma_stack.count(axis=0), 0).astype(np.uint16)
     print("Excluding pixels with count < %i" % n_thresh)
-    valid_idx = (count.data >= n_thresh)
+    valid_mask = (count.data >= n_thresh)
+
     #Want to avoid computing trend where dt is small
     #Note, actual minimum depends on magnitude of trend
     if min_dt_ptp is None:
-        max_dt_ptp = np.ptp(calcperc(date_list_o, (4, 96)))
+        if dt_stack_ptp is not None:
+            max_dt_ptp = calcperc(dt_stack_ptp, (4, 96))[1]
+        else:
+            #Calculate from all available dates
+            max_dt_ptp = np.ptp(calcperc(date_list_o, (4, 96)))
         min_dt_ptp = 0.10 * max_dt_ptp
-    y_orig = ma_stack[:, valid_idx]
+
+    if dt_stack_ptp is not None:
+        print("Excluding pixels with dt range < %0.2f days" % min_dt_ptp) 
+        valid_mask = valid_mask & (dt_stack_ptp >= min_dt_ptp)
+
+    y_orig = ma_stack[:, valid_mask]
     #Extract mask for axis 0 - invert, True where data is available
     mask = ~y_orig.mask
-    #Remove masks, fills with fill_value
-    y = y_orig.data
-    #Independent variable is time ordinal
-    x = date_list_o
-    x_mean = x.mean()
-    x = x.data
-    #Prepare matrices
-    X = np.c_[x, np.ones_like(x)]
-    a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
-    b = np.dot(X.T, (mask*y))
-    #Solve for slope/intercept
-    print("Solving for trend")
-    r = np.linalg.solve(a, b.T)
-    #Reshape to original dimensions
-    #r = r.reshape(origshape[1], origshape[2], 2)
+
+    if model == 'linear':
+        #Remove masks, fills with fill_value
+        y = y_orig.data
+        #Independent variable is time ordinal
+        x = date_list_o
+        x_mean = x.mean()
+        x = x.data
+        #Prepare matrices
+        X = np.c_[x, np.ones_like(x)]
+        a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
+        b = np.dot(X.T, (mask*y))
+        #Solve for slope/intercept
+        print("Solving for trend")
+        r = np.linalg.solve(a, b.T)
+        #Reshape to original dimensions
+        #r = r.reshape(origshape[1], origshape[2], 2)
+        m = r[:,0]
+        b = r[:,1]
+    else:
+        #Create empty arrays for slope and intercept results 
+        m = np.ma.masked_all(y_orig.shape[1])
+        b = np.ma.masked_all(y_orig.shape[1])
+        make_plot=False
+        parallel=True
+        if parallel:
+            import multiprocessing as mp
+            pool = mp.Pool()
+            results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
+            results = np.array(results)
+            m = results[:,0]
+            b = results[:,1]
+        else:
+            for n in range(y_orig.shape[1]):
+                print('%i of %i px' % (n, y_orig.shape[1]))
+                y = y_orig[:,n]
+                m[n], b[n] = do_robust_linreg(date_list_o, y, model)
+                if make_plot:
+                    f, ax = plt.subplots()
+                    ax.scatter(x, y)
+                    xi = np.arange(x.min(), x.max())[:,np.newaxis]
+                    yi = m[n] * xi + b[n] 
+                    ax.plot(xi, yi)
 
     #Create output grids with original dimensions
     slope = np.ma.masked_all_like(ma_stack[0])
@@ -1057,14 +1058,26 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_te
     detrended_std = np.ma.masked_all_like(ma_stack[0])
 
     #Fill in the valid indices
-    slope[valid_idx] = r[:,0]
-    intercept[valid_idx] = r[:,1]
-    y_fit = r[:,0]*np.ma.array(x[:,None]*mask, mask=y_orig.mask) + r[:,1]
+    slope[valid_mask] = m 
+    intercept[valid_mask] = b
+
+    #Smooth the result
+    if smooth:
+        size = 5
+        print("Smoothing output with %i px gaussian filter" % size)
+        from pygeotools.lib import filtlib
+        #Gaussian filter
+        #slope = filtlib.gauss_fltr_astropy(slope, size=size)
+        #intercept = filtlib.gauss_fltr_astropy(intercept, size=size)
+        #Median filter
+        slope = filtlib.rolling_fltr(slope, size=size, circular=False)
+        intercept = filtlib.rolling_fltr(intercept, size=size, circular=False)
+
+    #Compute detrended std
+    y_fit = m*np.ma.array(date_list_o.data[:,None]*mask, mask=y_orig.mask) + b 
     resid = y_orig - y_fit
-    #Note: Should be able to compute std of resid relative to resid mean, as lsq resid mean will be 0
-    resid_std = resid.std(axis=0).data
-    #resid_std = np.sqrt(np.sum(resid**2, axis=0)/resid.count(axis=0))
-    detrended_std[valid_idx] = resid_std
+    resid_std = resid.std(axis=0)
+    detrended_std[valid_mask] = resid_std
 
     if rsq:
         rsquared = np.ma.masked_all_like(ma_stack[0])
@@ -1072,7 +1085,7 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_te
         SSres = np.sum(resid**2, axis=0).data
         count = y_orig.count(axis=0)
         r2 = 1 - (SSres/SStot)
-        rsquared[valid_idx] = r2
+        rsquared[valid_mask] = r2
 
     if conf_test:
         SE = np.sqrt(SSres/(count - 2)/np.sum((x - x_mean)**2, axis=0))
@@ -1084,8 +1097,8 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, min_dt_ptp=None, rsq=False, conf_te
             t1 = abs(t.ppf(alpha/2.0,c-2))
             ta[(count == c)] = t1
         sig = np.logical_and((T0 > -ta), (T0 < ta))
-        sigmask = np.zeros_like(valid_idx, dtype=bool)
-        sigmask[valid_idx] = ~sig
+        sigmask = np.zeros_like(valid_mask, dtype=bool)
+        sigmask[valid_mask] = ~sig
         #SSerr = SStot - SSres
         #F0 = SSres/(SSerr/(count - 2))
         #from scipy.stats import f
