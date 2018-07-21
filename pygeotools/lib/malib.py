@@ -992,16 +992,13 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
     valid_mask = (count.data >= n_thresh)
 
     #Want to avoid computing trend where dt is small
-    #Note, actual minimum depends on magnitude of trend
-    if min_dt_ptp is None:
-        if dt_stack_ptp is not None:
-            max_dt_ptp = calcperc(dt_stack_ptp, (4, 96))[1]
-        else:
-            #Calculate from all available dates
-            max_dt_ptp = np.ptp(calcperc(date_list_o, (4, 96)))
-        min_dt_ptp = 0.10 * max_dt_ptp
-
     if dt_stack_ptp is not None:
+        if min_dt_ptp is None:
+            #Calculate from datestack ptp
+            max_dt_ptp = calcperc(dt_stack_ptp, (4, 96))[1]
+            #Calculate from list of available dates
+            #max_dt_ptp = np.ptp(calcperc(date_list_o, (4, 96)))
+            min_dt_ptp = 0.10 * max_dt_ptp
         print("Excluding pixels with dt range < %0.2f days" % min_dt_ptp) 
         valid_mask = valid_mask & (dt_stack_ptp >= min_dt_ptp)
 
@@ -1009,7 +1006,25 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
     #Extract mask for axis 0 - invert, True where data is available
     mask = ~y_orig.mask
 
-    if model == 'linear':
+    if model == 'theilsen' or model == 'ransac':
+        #Create empty arrays for slope and intercept results 
+        m = np.ma.masked_all(y_orig.shape[1])
+        b = np.ma.masked_all(y_orig.shape[1])
+        parallel=True
+        if parallel:
+            import multiprocessing as mp
+            pool = mp.Pool()
+            results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
+            results = np.array(results)
+            m = results[:,0]
+            b = results[:,1]
+        else:
+            for n in range(y_orig.shape[1]):
+                print('%i of %i px' % (n, y_orig.shape[1]))
+                y = y_orig[:,n]
+                m[n], b[n] = do_robust_linreg(date_list_o, y, model)
+    else:
+        #if model == 'linear':
         #Remove masks, fills with fill_value
         y = y_orig.data
         #Independent variable is time ordinal
@@ -1027,30 +1042,7 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
         #r = r.reshape(origshape[1], origshape[2], 2)
         m = r[:,0]
         b = r[:,1]
-    else:
-        #Create empty arrays for slope and intercept results 
-        m = np.ma.masked_all(y_orig.shape[1])
-        b = np.ma.masked_all(y_orig.shape[1])
-        make_plot=False
-        parallel=True
-        if parallel:
-            import multiprocessing as mp
-            pool = mp.Pool()
-            results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
-            results = np.array(results)
-            m = results[:,0]
-            b = results[:,1]
-        else:
-            for n in range(y_orig.shape[1]):
-                print('%i of %i px' % (n, y_orig.shape[1]))
-                y = y_orig[:,n]
-                m[n], b[n] = do_robust_linreg(date_list_o, y, model)
-                if make_plot:
-                    f, ax = plt.subplots()
-                    ax.scatter(x, y)
-                    xi = np.arange(x.min(), x.max())[:,np.newaxis]
-                    yi = m[n] * xi + b[n] 
-                    ax.plot(xi, yi)
+
 
     #Create output grids with original dimensions
     slope = np.ma.masked_all_like(ma_stack[0])
