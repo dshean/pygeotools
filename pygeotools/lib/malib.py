@@ -1005,6 +1005,8 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
     y_orig = ma_stack[:, valid_mask]
     #Extract mask for axis 0 - invert, True where data is available
     mask = ~y_orig.mask
+    print("%i total valid pixels, %i valid series with up to %i timestamps" % (ma_stack.count(), \
+            mask.nonzero()[0].size, ma_stack.shape[0]))
 
     if model == 'theilsen' or model == 'ransac':
         #Create empty arrays for slope and intercept results 

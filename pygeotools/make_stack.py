@@ -18,6 +18,7 @@ def getparser():
     parser.add_argument('-outdir', default=None, help='Output directory')
     parser.add_argument('-stack_fn', default=None, help='Output filename')
     parser.add_argument('--trend', dest='trend', action='store_true')
+    parser.add_argument('--robust', dest='robust', action='store_true')
     parser.add_argument('--no-trend', dest='trend', action='store_false')
     parser.add_argument('--med', dest='med', action='store_true')
     parser.add_argument('--no-med', dest='med', action='store_false')
@@ -38,7 +39,7 @@ def main():
     args = parser.parse_args()
 
     #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types
-    s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, res=args.tr, extent=args.te, srs=args.t_srs, trend=args.trend, med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
+    s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, res=args.tr, extent=args.te, srs=args.t_srs, trend=args.trend, robust=args.robust, med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
 
     print(s.stack_fn)
 
