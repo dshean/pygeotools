@@ -4,6 +4,7 @@
 
 import argparse
 
+import numpy as np
 from pygeotools.lib import malib
 
 #Hack to work around file open limit
@@ -17,6 +18,8 @@ def getparser():
     parser.add_argument('-t_srs', default='first', help='Output projection (default: %(default)s)')
     parser.add_argument('-outdir', default=None, help='Output directory')
     parser.add_argument('-stack_fn', default=None, help='Output filename')
+    parser.add_argument('-min_dt_ptp', type=float, default=np.nan, help='Minimum number of days between first and last obs for trend calculation at each valid pixel')
+    parser.add_argument('-min_n', type=int, default=2, help='Minimum number of obs for trend calculation at each valid pixel')
     parser.add_argument('--trend', dest='trend', action='store_true')
     parser.add_argument('--robust', dest='robust', action='store_true')
     parser.add_argument('--no-trend', dest='trend', action='store_false')
@@ -39,7 +42,10 @@ def main():
     args = parser.parse_args()
 
     #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types
-    s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, res=args.tr, extent=args.te, srs=args.t_srs, trend=args.trend, robust=args.robust, med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
+    s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, \
+            res=args.tr, extent=args.te, srs=args.t_srs, \
+            trend=args.trend, robust=args.robust, n_thresh=args.min_n, min_dt_ptp=args.min_dt_ptp, \
+            med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
 
     print(s.stack_fn)
 
