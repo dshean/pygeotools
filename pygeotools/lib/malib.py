@@ -36,7 +36,7 @@ from pygeotools.lib import iolib
 #Want to add error attributes
 #Want to make consistent with stack_count vs count keywords/attributes
 class DEMStack:
-    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, robust=False, med=False, stats=True, save=True, sort=True, datestack=True, mask_geom=None, min_dt_ptp=np.nan, n_thresh=2):
+    def __init__(self, fn_list=[], stack_fn=None, outdir=None, res=None, extent=None, srs=None, trend=True, robust=False, med=False, stats=True, save=True, sort=True, datestack=True, mask_geom=None, min_dt_ptp=np.nan, n_thresh=2, n_cpu=None):
         self.sort = sort
         if self.sort:
             #This sorts filenames, should probably sort by datetime to be safe
@@ -59,6 +59,7 @@ class DEMStack:
         self.n_thresh = n_thresh 
         #This is the minimum number of days between first and last timestamp to compute trend
         self.min_dt_ptp = min_dt_ptp
+        self.n_cpu = n_cpu
 
         #Use this to limit memory use and filesizes
         #self.dtype = 'float32'
@@ -650,7 +651,7 @@ class DEMStack:
         print("Compute stack linear trend with model: %s" % model)
         self.stack_trend, self.stack_intercept, self.stack_detrended_std = \
                 ma_linreg(self.ma_stack, self.date_list, dt_stack_ptp=self.dt_stack_ptp, min_dt_ptp=self.min_dt_ptp, \
-                n_thresh=self.n_thresh, model=model, rsq=False, conf_test=False, smooth=False)
+                n_thresh=self.n_thresh, model=model, rsq=False, conf_test=False, smooth=False, n_cpu=self.n_cpu)
         #self.stack_trend = np.ma.array(self.stack_trend, dtype=self.dtype)
         #self.stack_intercept = np.ma.array(self.stack_intercept, dtype=self.dtype)
         #self.stack_detrended_std = np.ma.array(self.stack_detrended_std, dtype=self.dtype)
@@ -978,7 +979,7 @@ def do_robust_linreg(arg):
 #Linear is fast
 #Robust options are slower, but use multiprocessing
 def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, min_dt_ptp=None, smooth=False, \
-        rsq=False, conf_test=False):
+        rsq=False, conf_test=False, n_cpu=None):
     """Compute per-pixel linear regression for stack object
     """
     #Check type of dt_list
@@ -1023,9 +1024,11 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
             parallel=True
             if parallel:
                 import multiprocessing as mp
-                ncpu = iolib.cpu_count(logical=False)
-                #ncpu = 2
-                pool = mp.Pool(processes=ncpu)
+                if n_cpu is None:
+                    n_cpu = iolib.cpu_count(logical=True)
+                n_cpu = int(n_cpu)
+                print("Running in parallel with %i processes" % n_cpu)
+                pool = mp.Pool(processes=n_cpu)
                 results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
                 results = np.array(results)
                 m = results[:,0]

@@ -20,6 +20,7 @@ def getparser():
     parser.add_argument('-stack_fn', default=None, help='Output filename')
     parser.add_argument('-min_dt_ptp', type=float, default=np.nan, help='Minimum number of days between first and last obs for trend calculation at each valid pixel')
     parser.add_argument('-min_n', type=int, default=2, help='Minimum number of obs for trend calculation at each valid pixel')
+    parser.add_argument('-n_cpu', default=None, help='Number of parallel processes to use for robust trend calculation')
     parser.add_argument('--trend', dest='trend', action='store_true')
     parser.add_argument('--robust', dest='robust', action='store_true')
     parser.add_argument('--no-trend', dest='trend', action='store_false')
@@ -44,7 +45,7 @@ def main():
     #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types
     s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, \
             res=args.tr, extent=args.te, srs=args.t_srs, \
-            trend=args.trend, robust=args.robust, n_thresh=args.min_n, min_dt_ptp=args.min_dt_ptp, \
+            trend=args.trend, robust=args.robust, n_thresh=args.min_n, min_dt_ptp=args.min_dt_ptp, n_cpu=args.n_cpu, \
             med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
 
     print(s.stack_fn)
