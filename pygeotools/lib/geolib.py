@@ -751,7 +751,7 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     a = ~(a.astype('Bool'))
     return a
 
-def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=False):
+def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=False, verbose=False):
     """Clip an input raster by input polygon shapefile for given extent
 
     """
@@ -797,7 +797,6 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
         out_extent = pad_extent(out_extent, width=pad)
 
     print("Raster to clip: %s\nShapefile used to clip: %s" % (r_fn, shp_fn))
-    verbose = True 
     if verbose:
         print(shp_extent) 
         print(r_extent)

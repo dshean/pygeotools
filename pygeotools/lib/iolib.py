@@ -489,7 +489,7 @@ def setstripe(dir, threads=cpu_count()):
     #Use 'df -T' to determine filesystem of directory
     #Can do this with psutil Python lib, but need to also find mount point of file
     if 'lustre' in subprocess.check_output(['df','-T',dir]):
-        cmd = ['lfs', 'setstripe', dir, '--count', str(threads)]
+        cmd = ['lfs', 'setstripe', dir, '-c', str(threads)]
         print(' '.join(cmd))
         subprocess.call(cmd)
 
