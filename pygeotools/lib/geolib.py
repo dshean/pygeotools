@@ -366,7 +366,7 @@ def dms2dd_str(dms_str):
     else:
         sign = 1
     #(degree, minute, second, frac_seconds) = map(int, re.split('\D+', dms_str))
-    (degree, minute, second) = dms_str.split()
+    (degree, minute, second) = dms_str.split()[0:3]
     #dd = sign * (int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 36000)
     dd = dms2dd(int(degree)*sign, int(minute), float(second)) 
     return dd
