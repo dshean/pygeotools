@@ -2070,6 +2070,8 @@ def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_t
         if stat in ['lastindex', 'firstindex']:
             #This will write out the index map to -last.tif by default
             cmd.append('--save-index-map')
+            #Make sure we don't have ndv that conflicts with 0-based DEM indices
+            cmd.extend(['--output-nodata-value','-9999'])
     #else:
     #    cmd.extend(['--save-dem-weight', o+'_weight'])
     cmd.extend(fn_list)
