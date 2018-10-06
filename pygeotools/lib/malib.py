@@ -398,8 +398,8 @@ class DEMStack:
 
     def loadstack(self):
         print("Loading stack from: %s" % self.stack_fn)
-        data = np.load(self.stack_fn)
-        self.fn_list = list(data['fn_list'])
+        data = np.load(self.stack_fn, encoding='latin1')
+        self.fn_list = list([i.decode("utf-8") for i in data['fn_list']])
         #Load flags originally used for stack creation
         #self.flags = data['flags']
         #{'datestack':self.datestack, 'stats':self.stats, 'med':self.med, 'trend':self.trend, 'sort':self.sort, 'save':self.save} 
@@ -411,10 +411,10 @@ class DEMStack:
             self.error = np.ma.fix_invalid(data['error'], fill_value=-9999)
         else:
             self.error = np.ma.zeros(len(self.fn_list))
-        if 'error_dict_list' in data:
-            self.error_dict_list = data['error_dict_list'][()]
-        else:
-            self.error_dict_list = [None for i in self.fn_list]
+        #if 'error_dict_list' in data:
+        #    self.error_dict_list = data['error_dict_list'][()]
+        #else:
+        self.error_dict_list = [None for i in self.fn_list]
         #This is a shortcut, should load from the data['date_list'] arrays
         if 'date_list_o' in data:
             from pygeotools.lib import timelib
@@ -979,7 +979,7 @@ def do_robust_linreg(arg):
 #Linear is fast
 #Robust options are slower, but use multiprocessing
 def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, min_dt_ptp=None, smooth=False, \
-        rsq=False, conf_test=False, n_cpu=None):
+        rsq=False, conf_test=False, parallel=True, n_cpu=None):
     """Compute per-pixel linear regression for stack object
     """
     #Check type of dt_list
@@ -1021,7 +1021,6 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
             #Create empty arrays for slope and intercept results 
             m = np.ma.masked_all(y_orig.shape[1])
             b = np.ma.masked_all(y_orig.shape[1])
-            parallel=True
             if parallel:
                 import multiprocessing as mp
                 if n_cpu is None:
