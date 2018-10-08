@@ -259,17 +259,20 @@ class DEMStack:
                 print(np.array(self.fn_list)[bad_ds_idx])
                 self.fn_list = np.array(self.fn_list)[~bad_ds_idx].tolist()
                 print("%i valid input ds\n" % len(self.fn_list)) 
+
+            #Only create a stack if we have more than one valid input
+            if len(self.fn_list) > 1:
                 self.get_stack_fn()
-            print("Creating ma_stack")
-            #Note: might not need ma here in the 0 axis - shouldn't be any missing data
-            #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
-            self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
-            #Might want to convert to proj4
-            self.proj = ds_list[0].GetProjectionRef()
-            self.gt = ds_list[0].GetGeoTransform()
-            #Now set these for stack, regardless of input
-            self.get_res()
-            self.get_extent()
+                print("Creating ma_stack")
+                #Note: might not need ma here in the 0 axis - shouldn't be any missing data
+                #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
+                self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
+                #Might want to convert to proj4
+                self.proj = ds_list[0].GetProjectionRef()
+                self.gt = ds_list[0].GetGeoTransform()
+                #Now set these for stack, regardless of input
+                self.get_res()
+                self.get_extent()
 
     def get_sortorder(self):
         sort_idx = np.argsort(self.date_list)
@@ -607,18 +610,19 @@ class DEMStack:
         stat_list = ['stack_trend', 'stack_intercept', 'stack_detrended_std']
         if any([not hasattr(self, i) for i in stat_list]):
             self.compute_trend()
-        print("Writing out trend")
-        #Create dummy ds - might want to use vrt here instead
-        driver = gdal.GetDriverByName("MEM")
-        ds = driver.Create('', self.ma_stack.shape[2], self.ma_stack.shape[1], 1, gdal.GDT_Float32)
-        ds.SetGeoTransform(self.gt)
-        ds.SetProjection(self.proj)
-        #Write out with malib, should preserve ma type
-        out_prefix = os.path.splitext(self.stack_fn)[0]
-        iolib.writeGTiff(self.stack_trend, out_prefix+'_trend.tif', ds)
-        iolib.writeGTiff(self.stack_intercept, out_prefix+'_intercept.tif', ds)
-        iolib.writeGTiff(self.stack_detrended_std, out_prefix+'_detrended_std.tif', ds)
-        #iolib.writeGTiff(self.stack_rsquared, out_prefix+'_rsquared.tif', ds)
+        if self.stack_trend.count() > 0:
+            print("Writing out trend")
+            #Create dummy ds - might want to use vrt here instead
+            driver = gdal.GetDriverByName("MEM")
+            ds = driver.Create('', self.ma_stack.shape[2], self.ma_stack.shape[1], 1, gdal.GDT_Float32)
+            ds.SetGeoTransform(self.gt)
+            ds.SetProjection(self.proj)
+            #Write out with malib, should preserve ma type
+            out_prefix = os.path.splitext(self.stack_fn)[0]
+            iolib.writeGTiff(self.stack_trend, out_prefix+'_trend.tif', ds)
+            iolib.writeGTiff(self.stack_intercept, out_prefix+'_intercept.tif', ds)
+            iolib.writeGTiff(self.stack_detrended_std, out_prefix+'_detrended_std.tif', ds)
+            #iolib.writeGTiff(self.stack_rsquared, out_prefix+'_rsquared.tif', ds)
     
     """
     def linreg_mstats(self):
