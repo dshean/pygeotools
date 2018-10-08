@@ -2,6 +2,8 @@
 
 #Generate stack from input rasters
 
+import os
+import sys
 import argparse
 
 import numpy as np
@@ -42,12 +44,15 @@ def main():
     parser = getparser()
     args = parser.parse_args()
 
+    if args.stack_fn is not None:
+        if os.path.exists(args.stack_fn):
+            sys.exit("Found existing stack_fn: %s" % args.stack_fn)
+
     #Note: res and extent are passed directly to warplib.memwarp_multi_fn, so can be many types
     s = malib.DEMStack(fn_list=args.src_fn_list, stack_fn=args.stack_fn, outdir=args.outdir, \
             res=args.tr, extent=args.te, srs=args.t_srs, \
             trend=args.trend, robust=args.robust, n_thresh=args.min_n, min_dt_ptp=args.min_dt_ptp, n_cpu=args.n_cpu, \
             med=args.med, stats=args.stats, save=args.save, sort=args.sort, datestack=args.datestack)
-
     print(s.stack_fn)
 
 if __name__ == '__main__':
