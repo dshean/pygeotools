@@ -2038,7 +2038,7 @@ def xy2geom(x, y, t_srs=None):
         geom.AssignSpatialReference(t_srs)
     return geom
 
-def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_tile_size=None, threads=None, tile=None, stat=None):
+def get_dem_mosaic_cmd(fn_list, o, fn_list_txt=None, tr=None, t_srs=None, t_projwin=None, georef_tile_size=None, threads=None, tile=None, stat=None):
     """
     Create ASP dem_mosaic command 
     Useful for spawning many single-threaded mosaicing processes
@@ -2054,7 +2054,8 @@ def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_t
     if tr is not None:
         cmd.extend(['--tr', tr])
     if t_srs is not None:
-        cmd.extend(['--t_srs', t_srs.ExportToProj4()])
+        #cmd.extend(['--t_srs', t_srs.ExportToProj4()])
+        cmd.extend(['--t_srs', '"%s"' % t_srs.ExportToProj4()])
     if t_projwin is not None:
         cmd.append('--t_projwin')
         cmd.extend(t_projwin)
@@ -2066,15 +2067,26 @@ def get_dem_mosaic_cmd(fn_list, o, tr=None, t_srs=None, t_projwin=None, georef_t
     if georef_tile_size is not None:
         cmd.extend(['--georef-tile-size', georef_tile_size])
     if stat is not None:
-        cmd.append('--%s' % stat.replace('index',''))
-        if stat in ['lastindex', 'firstindex']:
-            #This will write out the index map to -last.tif by default
-            cmd.append('--save-index-map')
-            #Make sure we don't have ndv that conflicts with 0-based DEM indices
-            cmd.extend(['--output-nodata-value','-9999'])
+        if stat == 'wmean':
+            stat = None
+        else:
+            cmd.append('--%s' % stat.replace('index',''))
+            if stat in ['lastindex', 'firstindex', 'medianindex']:
+                #This will write out the index map to -last.tif by default
+                cmd.append('--save-index-map')
+                #Make sure we don't have ndv that conflicts with 0-based DEM indices
+                cmd.extend(['--output-nodata-value','-9999'])
     #else:
     #    cmd.extend(['--save-dem-weight', o+'_weight'])
-    cmd.extend(fn_list)
+    #If user provided a file containing list of DEMs to mosaic (useful to avoid long bash command issues)
+    if fn_list_txt is not None:
+        if os.path.exists(fn_list_txt):
+            cmd.append('-l')
+            cmd.append(fn_list_txt)
+        else: 
+            print("Could not find input text file containing list of inputs")
+    else:
+        cmd.extend(fn_list)
     cmd = [str(i) for i in cmd]
     #print(cmd)
     #return subprocess.call(cmd)
