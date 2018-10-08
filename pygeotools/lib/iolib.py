@@ -472,6 +472,9 @@ def image_check(fn):
             status = False 
     return status
 
+#Return number of CPUs
+#Logical is "virtual" cpu count with hyperthreading
+#Set to False for physical cpu count
 def cpu_count(logical=True):
     """Return system CPU count
     """
