@@ -132,6 +132,9 @@ def main():
     #Write out
     dst_fn = os.path.splitext(fn)[0]+'_%sfilt%s.tif' % (filt, param_str)
     if args.outdir is not None:
+        outdir = args.outdir
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
         dst_fn = os.path.join(outdir, os.path.split(dst_fn)[-1])
     print("Writing out filtered raster: %s" % dst_fn)
     iolib.writeGTiff(r_fltr, dst_fn, ds) 
