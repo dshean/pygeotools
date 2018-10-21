@@ -106,27 +106,40 @@ def fn_getdatetime_list(fn):
     #NOTE: could have 20130304_1510__20130304__whatever in filename
     #The current approach will only catch the first datetime 
     dstr = None
+    out = None
+    #20180101_1200 or 20180101T1200
     dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])[_T](?:0[0-9]|1[0-9]|2[0-3])[0-5][0-9]', fn)
+    #201801011200
     if not dstr:
         dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:0[0-9]|1[0-9]|2[0-3])[0-5][0-9]', fn)
+    #20180101
     if not dstr:
         dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])(?:$|_|-)', fn)
         #This should pick up dates separated by a dash
         #dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:0[1-9]|1[012])(?:0[1-9]|[12][0-9]|3[01])', fn)
+    #2018.609990
+    if not dstr:
+        dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9]\.[0-9][0-9][0-9]*(?:$|_|-)', fn)
+        dstr = [d.lstrip('_').rstrip('_') for d in dstr]
+        dstr = [d.lstrip('-').rstrip('-') for d in dstr]
+        out = [decyear2dt(float(s)) for s in dstr]
+        dstr = None
+    #2018
     if not dstr:
         dstr = re.findall(r'(?:^|_|-)(?:19|20)[0-9][0-9](?:$|_|-)', fn)
     #This is for USGS archive filenames
     if not dstr:
         dstr = re.findall(r'[0-3][0-9][a-z][a-z][a-z][0-9][0-9]', fn)
-    #if not dstr:
-    #    dstr = re.findall(r'(?:^|_)(?:19|20)[0-9][0-9]', fn)
-    #This is a hack to remove peripheral underscores and dashes
-    dstr = [d.lstrip('_').rstrip('_') for d in dstr]
-    dstr = [d.lstrip('-').rstrip('-') for d in dstr]
-    #This returns an empty list of nothing is found
-    out = [strptime_fuzzy(s) for s in dstr]
-    #This is USGS archive format
-    #out = [datetime.strptime(s, '%d%b%y') for s in dstr][0]
+        #This is USGS archive format
+        if dstr:
+            out = [datetime.strptime(s, '%d%b%y') for s in dstr][0]
+            dstr = None
+    if dstr:
+        #This is a hack to remove peripheral underscores and dashes
+        dstr = [d.lstrip('_').rstrip('_') for d in dstr]
+        dstr = [d.lstrip('-').rstrip('-') for d in dstr]
+        #This returns an empty list of nothing is found
+        out = [strptime_fuzzy(s) for s in dstr]
     return out
 
 def get_t_factor(t1, t2):
