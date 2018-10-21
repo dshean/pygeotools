@@ -402,7 +402,8 @@ class DEMStack:
     def loadstack(self):
         print("Loading stack from: %s" % self.stack_fn)
         data = np.load(self.stack_fn, encoding='latin1')
-        self.fn_list = list([i.decode("utf-8") for i in data['fn_list']])
+        #self.fn_list = list([i.decode("utf-8") for i in data['fn_list']])
+        self.fn_list = data['fn_list']
         #Load flags originally used for stack creation
         #self.flags = data['flags']
         #{'datestack':self.datestack, 'stats':self.stats, 'med':self.med, 'trend':self.trend, 'sort':self.sort, 'save':self.save} 
@@ -539,6 +540,8 @@ class DEMStack:
         #self.date_list = np.ma.array([dateutil.parser.parse(os.path.split(fn)[1][0:13], fuzzy=True) for fn in self.fn_list])
         #This will return None if no date in fn
         date_list = [timelib.fn_getdatetime(os.path.split(fn)[-1]) for fn in self.fn_list]
+        #Decimal years - should now be handled properly in timelib.fn_getdatetime
+        #date_list = [timelib.decyear2dt(float(os.path.splitext(os.path.split(fn)[-1])[0].split('_')[-1])) for fn in self.fn_list]
         self.date_list = np.ma.masked_equal([datetime(1,1,1) if d is None else d for d in date_list], datetime(1,1,1))
         #self.date_list = np.ma.array([dateutil.parser.parse(os.path.split(fn)[1][3:12], fuzzy=True) for fn in self.fn_list])
         self.date_list_o = np.ma.array([matplotlib.dates.date2num(d) for d in self.date_list.filled()], mask=self.date_list.mask)
@@ -1010,8 +1013,9 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
     y_orig = ma_stack[:, valid_mask]
     #Extract mask for axis 0 - invert, True where data is available
     mask = ~y_orig.mask
+    valid_pixel_count = np.sum(valid_mask)
     print("%i valid pixels with up to %i timestamps: %i total valid samples" % \
-            (np.sum(valid_mask), ma_stack.shape[0], y_orig.count()))
+            (valid_pixel_count, ma_stack.shape[0], y_orig.count()))
 
     #Create empty (masked) output grids with original dimensions
     slope = np.ma.masked_all_like(ma_stack[0])
