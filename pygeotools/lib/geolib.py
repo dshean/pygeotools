@@ -550,6 +550,32 @@ def block_stats_grid_gen(x, y, z, res=None, srs=None, stat='median'):
     ds = mem_ds(res, extent, srs)
     return block_stats_grid(x,y,z,ds,stat), ds
 
+#Create copy of ds in memory
+#Should be able to use mem_drv CreateCopy method
+#Alternative brute force implementation
+#Should probably move to iolib
+def mem_ds_copy(ds_orig):
+    if True:
+        from pygeotools.lib import iolib
+        m_ds = iolib.mem_drv.CreateCopy('', ds_orig, 0)
+    else:
+        gt = ds_orig.GetGeoTransform()
+        srs = ds_orig.GetProjection()
+        dst_ns = ds_orig.RasterXSize
+        dst_nl = ds_orig.RasterYSize
+        nbands = ds_orig.RasterCount
+        dtype = ds_orig.GetRasterBand(1).DataType
+        m_ds = gdal.GetDriverByName('MEM').Create('', dst_ns, dst_nl, nbands, dtype)
+        m_ds.SetGeoTransform(gt)
+        m_ds.SetProjection(srs)
+        for n in range(nbands):
+            b = ds_orig.GetRasterBand(n+1)
+            ndv = b.GetNoDataValue()
+            #m_ds.AddBand()
+            m_ds.GetRasterBand(n+1).WriteArray(b.ReadAsArray())
+            m_ds.GetRasterBand(n+1).SetNoDataValue(ndv)
+    return m_ds
+
 def mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32):
     """Create a new GDAL Dataset in memory
 
@@ -1575,6 +1601,8 @@ def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hil
     """
     if ds is None:
         ds = mem_ds(res, extent, srs=None, dtype=gdal.GDT_Float32)
+    else:
+        ds = mem_ds_copy(ds)
     b = ds.GetRasterBand(1)
     b.WriteArray(ma)
     return gdaldem_mem_ds(ds, processing=processing, returnma=returnma)
