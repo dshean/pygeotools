@@ -68,17 +68,17 @@ def main():
 
     if filt == 'range':
         #Range filter
-        param = map(float, param)
+        param = [float(i) for i in param[1:]]
         r_fltr = filtlib.range_fltr(r_fltr, param)
         param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
     elif filt == 'absrange':
         #Range filter of absolute values
-        param = map(float, param)
+        param = [float(i) for i in param[1:]]
         r_fltr = filtlib.absrange_fltr(r_fltr, param)
         param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
     elif filt == 'perc':
         #Percentile filter
-        param = map(float, param)
+        param = [float(i) for i in param[1:]]
         r_fltr = filtlib.perc_fltr(r, perc=param)
         param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
     elif filt == 'med':
@@ -115,7 +115,7 @@ def main():
         ref_fn = param[0]
         ref_ds = warplib.memwarp_multi_fn([ref_fn,], res=ds, extent=ds, t_srs=ds)[0]
         ref = iolib.ds_getma(ref_ds)
-        param = map(float, param[1:])
+        param = [float(i) for i in param[1:]]
         r_fltr = filtlib.dz_fltr_ma(r, ref, rangelim=param)
         #param_str = '_{0:0.2f}-{1:0.2f}'.format(*param)
         param_str = '_{0:0.0f}_{1:0.0f}'.format(*param)
