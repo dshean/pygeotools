@@ -20,6 +20,7 @@ import os
 import math
 
 from osgeo import gdal, osr
+import numpy as np
 
 from pygeotools.lib import geolib
 from pygeotools.lib import iolib
@@ -405,7 +406,7 @@ def parse_extent(extent, src_ds_list, t_srs=None):
         extent = geolib.ds_geom_extent(extent, t_srs=t_srs)
     elif isinstance(extent, str) and os.path.exists(extent): 
         extent = geolib.ds_geom_extent(gdal.Open(extent), t_srs=t_srs)
-    elif isinstance(extent, (list, tuple)):
+    elif isinstance(extent, (list, tuple, np.ndarray)):
         extent = list(extent)
     else:
         extent = [float(i) for i in extent.split(' ')]
