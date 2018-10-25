@@ -1427,7 +1427,7 @@ def pad_extent(extent, perc=0.1, width=None, uniform=False):
         if uniform:
             dx = dy = np.mean([dx, dy])
         out = e + (perc * np.array([-dx, -dy, dx, dy]))
-    return out
+    return list(out)
 
 #What happens if input geom have different t_srs???
 #Add option to return envelope, don't need additional functions to do this
