@@ -1557,12 +1557,34 @@ def clip_shp(shp_fn, extent):
     print(cmd)
     subprocess.call(cmd, shell=False)
 
-#This will rasterize a geom for a given ma and geotransform
-#Proper way would be to take in ds, transform geom to ds_srs, then convert to pixel coord
-#Another need for Geoma
-#See ogr_explode.py
-#def rasterize_geom(ma, geom, gt=[0,1,0,0,1,0]):
-def geom2mask(geom, ds):
+#Rasterize geometry to get mask for givein input dataset
+def geom2mask(geom, r_ds):
+    #Create memory raster dataset and fill with 0s
+    m_ds = gdal.GetDriverByName('MEM').CreateCopy('', r_ds, 1)
+    m_ds_srs = get_ds_srs(m_ds)
+    b = m_ds.GetRasterBand(1)
+    b.Fill(0)
+    b.SetNoDataValue(0)
+    #Create memory vector dataset and add geometry as new feature
+    ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('tmp_ds')
+    m_lyr = ogr_ds.CreateLayer('tmp_lyr', srs=m_ds_srs)
+    feat = ogr.Feature(m_lyr.GetLayerDefn())
+    #Might need to transform geom to m_ds_srs here
+    #geom_srs = geom.GetSpatialReference()
+    feat.SetGeometryDirectly(geom)
+    m_lyr.CreateFeature(feat)
+    #Rasterize with values of 1
+    gdal.RasterizeLayer(m_ds, [1], m_lyr, burn_values=[1])
+    a = b.ReadAsArray()
+    mask = a.astype('Bool')
+    m_ds = None
+    geom = None
+    m_lyr = None
+    ogr_ds = None
+    return ~mask
+
+#Old function, does not work with inner rings or complex geometries
+def geom2mask_PIL(geom, ds):
     from PIL import Image, ImageDraw
     #width = ma.shape[1]
     #height = ma.shape[0]
