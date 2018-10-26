@@ -1557,31 +1557,56 @@ def clip_shp(shp_fn, extent):
     print(cmd)
     subprocess.call(cmd, shell=False)
 
-#Rasterize geometry to get mask for givein input dataset
-def geom2mask(geom, r_ds):
+#Need to combine these with shp2array
+#Deal with different srs
+
+#Rasterize shp to binary mask
+def fn2mask(fn, r_ds):
+    v_ds = org.Open(fn)
+    mask = ds2mask(v_ds, r_ds)
+    v_ds = None
+    return mask
+
+#Rasterize ogr dataset to binary mask
+def ds2mask(v_ds, r_ds):
+    lyr = v_ds.GetLayer()
+    mask = lyr2mask(lyr, r_ds)
+    lyr = None
+    return mask
+
+#Rasterize ogr layer to binary mask (core functionality for gdal.RasterizeLayer)
+def lyr2mask(lyr, r_ds):
     #Create memory raster dataset and fill with 0s
     m_ds = gdal.GetDriverByName('MEM').CreateCopy('', r_ds, 1)
-    m_ds_srs = get_ds_srs(m_ds)
     b = m_ds.GetRasterBand(1)
     b.Fill(0)
     b.SetNoDataValue(0)
-    #Create memory vector dataset and add geometry as new feature
-    ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('tmp_ds')
-    m_lyr = ogr_ds.CreateLayer('tmp_lyr', srs=m_ds_srs)
-    feat = ogr.Feature(m_lyr.GetLayerDefn())
-    #Might need to transform geom to m_ds_srs here
-    #geom_srs = geom.GetSpatialReference()
-    feat.SetGeometryDirectly(geom)
-    m_lyr.CreateFeature(feat)
+    #Not sure if gdal.RasterizeLayer can handle srs difference
+    #r_srs = get_ds_srs(m_ds)
+    #lyr_srs = lyr.GetSpatialReference()
+    #if not r_srs.IsSame(lyr_srs):
+    #   lyr = lyr_proj(lyr, r_srs)
     #Rasterize with values of 1
-    gdal.RasterizeLayer(m_ds, [1], m_lyr, burn_values=[1])
+    gdal.RasterizeLayer(m_ds, [1], lyr, burn_values=[1])
     a = b.ReadAsArray()
     mask = a.astype('Bool')
     m_ds = None
-    geom = None
+    return ~mask
+
+#Rasterize ogr geometry to binary mask (creates dummy layer) 
+def geom2mask(geom, r_ds):
+    geom_srs = geom.GetSpatialReference()
+    geom2 = geom_dup(geom) 
+    #Create memory vector dataset and add geometry as new feature
+    ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('tmp_ds')
+    m_lyr = ogr_ds.CreateLayer('tmp_lyr', srs=geom_srs)
+    feat = ogr.Feature(m_lyr.GetLayerDefn())
+    feat.SetGeometryDirectly(geom2)
+    m_lyr.CreateFeature(feat)
+    mask = lyr2mask(m_lyr, r_ds)
     m_lyr = None
     ogr_ds = None
-    return ~mask
+    return mask
 
 #Old function, does not work with inner rings or complex geometries
 def geom2mask_PIL(geom, ds):
