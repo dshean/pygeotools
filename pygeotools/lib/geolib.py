@@ -1654,7 +1654,8 @@ def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hil
     b.WriteArray(ma)
     return gdaldem_mem_ds(ds, processing=processing, returnma=returnma)
 
-def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
+#Should add gdal.DEMProcessingOptions support
+def gdaldem_mem_ds(ds, processing='hillshade', returnma=False, computeEdges=False):
     """
     Wrapper for gdaldem functions
 
@@ -1663,7 +1664,7 @@ def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
     choices = ["hillshade", "slope", "aspect", "color-relief", "TRI", "TPI", "Roughness"]
     out = None
     if processing in choices:
-        out = gdal.DEMProcessing('', ds, processing, format='MEM')
+        out = gdal.DEMProcessing('', ds, processing, format='MEM', computeEdges=computeEdges)
     else:
         print("Invalid processing choice")
         print(choices)
@@ -1673,6 +1674,7 @@ def gdaldem_mem_ds(ds, processing='hillshade', returnma=False):
         out = iolib.ds_getma(out)
     return out 
 
+#Depreciated
 def gdaldem_wrapper(fn, product='hs', returnma=True, verbose=True):
     """Wrapper for gdaldem functions
 
