@@ -69,21 +69,20 @@ def mad_fltr(dem, n=2):
     out = range_fltr(dem, rangelim)
     return out
 
+#A spatial gradient could be valuable to mask bogus pixels
+
 #Slope filter
-#This should be updated with latest GDAL API - gdaldem functions can be called directly
-#Would a simple gradient or diff operation here be sufficient to reveal bogus pixels
-def slope_fltr(dem_fn, slopelim=(0.1, 40)):
+#Note, Noh and Howat set minimum slope of 20 deg for coregistration purposes
+#Should allow for input of masked array here, use geolib.gdaldem_mem_ma
+def slope_fltr(dem_fn, slopelim=(0, 40)):
     from pygeotools.lib import geolib
-    import shutil
-    #Note, Noh and Howat set minimum slope of 20 deg for coregistration purposes
     #perc = (0.01, 99.99)
     #slopelim = malib.calcperc(dem_slope, perc)
-    #dem_slope = np.gradient(dem)
-    dem_slope = geolib.gdaldem_slope(dem_fn)
-    dem = iolib.fn_getma(dem_fn)
-    out = np.ma.array(dem, mask=np.ma.masked_outside(dem_slope, *slopelim).mask, keep_mask=True, fill_value=dem.fill_value)
-    shutil.rm(os.path.splitext(dem_fn)[0]+'_slope.tif')
-    return out
+    dem_ds = iolib.fn_getds(dem_fn)
+    dem = iolib.ds_getma(dem_ds)
+    dem_slope = geolib.gdaldem_mem_ds(dem_ds, processing='slope', returnma=True, computeEdges=True)
+    dem_slope = range_fltr(dem_slope, slopelim)
+    return np.ma.array(dem, mask=np.ma.getmaskarray(dem_slope))
 
 def gauss_fltr(dem, sigma=1):
     print("Applying gaussian smoothing filter with sigma %s" % sigma)
