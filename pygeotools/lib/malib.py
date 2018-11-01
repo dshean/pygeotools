@@ -986,20 +986,25 @@ def do_robust_linreg(arg):
 #Linear is fast
 #Robust options are slower, but use multiprocessing
 def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, min_dt_ptp=None, smooth=False, \
-        rsq=False, conf_test=False, parallel=True, n_cpu=None):
+        rsq=False, conf_test=False, parallel=True, n_cpu=None, remove_outliers=False):
     """Compute per-pixel linear regression for stack object
     """
-    #Check type of dt_list
+    #Need to check type of input dt_list
+    #For now assume it is Python datetime objects 
     from pygeotools.lib import timelib
     date_list_o = timelib.np_dt2o(dt_list)
     date_list_o.set_fill_value(0.0)
 
-    #Only compute where we have n_thresh unmasked values in time
-    count = np.ma.masked_equal(ma_stack.count(axis=0), 0).astype(np.uint16)
-    print("Excluding pixels with count < %i" % n_thresh)
-    valid_mask = (count.data >= n_thresh)
+    #ma_stack = ma_stack[:,398:399,372:373]
+    #dt_stack_ptp = dt_stack_ptp[398:399,372:373]
 
-    #Want to avoid computing trend where dt is small
+    #Only compute trend where we have n_thresh unmasked values in time
+    #Create valid pixel count
+    count = np.ma.masked_equal(ma_stack.count(axis=0), 0).astype(np.uint16).data
+    print("Excluding pixels with count < %i" % n_thresh)
+    valid_mask_2D = (count >= n_thresh)
+
+    #Only compute trend where the time spread (ptp is max - min) is large
     if dt_stack_ptp is not None:
         if min_dt_ptp is None:
             #Calculate from datestack ptp
@@ -1008,66 +1013,105 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
             #max_dt_ptp = np.ptp(calcperc(date_list_o, (4, 96)))
             min_dt_ptp = 0.10 * max_dt_ptp
         print("Excluding pixels with dt range < %0.2f days" % min_dt_ptp) 
-        valid_mask = valid_mask & (dt_stack_ptp >= min_dt_ptp)
+        valid_mask_2D = valid_mask_2D & (dt_stack_ptp >= min_dt_ptp).filled(False)
 
-    y_orig = ma_stack[:, valid_mask]
-    #Extract mask for axis 0 - invert, True where data is available
-    mask = ~y_orig.mask
-    valid_pixel_count = np.sum(valid_mask)
-    print("%i valid pixels with up to %i timestamps: %i total valid samples" % \
-            (valid_pixel_count, ma_stack.shape[0], y_orig.count()))
-
-    #Create empty (masked) output grids with original dimensions
-    slope = np.ma.masked_all_like(ma_stack[0])
-    intercept = np.ma.masked_all_like(ma_stack[0])
-    detrended_std = np.ma.masked_all_like(ma_stack[0])
+    #Extract 1D time series for all valid pixel locations
+    y_orig = ma_stack[:, valid_mask_2D]
+    #Extract mask and invert: True where data is available
+    valid_mask = ~(np.ma.getmaskarray(y_orig))
+    valid_sample_count = np.inf
 
     if y_orig.count() == 0:
         print("No valid samples remain after count and min_dt_ptp filters")
+        slope = None
+        intercept = None
+        detrended_std = None
     else:
-        if model == 'theilsen' or model == 'ransac':
-            #Create empty arrays for slope and intercept results 
-            m = np.ma.masked_all(y_orig.shape[1])
-            b = np.ma.masked_all(y_orig.shape[1])
-            if parallel:
-                import multiprocessing as mp
-                if n_cpu is None:
-                    n_cpu = iolib.cpu_count(logical=True)
-                n_cpu = int(n_cpu)
-                print("Running in parallel with %i processes" % n_cpu)
-                pool = mp.Pool(processes=n_cpu)
-                results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
-                results = np.array(results)
-                m = results[:,0]
-                b = results[:,1]
+        #Create empty (masked) output grids with original dimensions
+        slope = np.ma.masked_all_like(ma_stack[0])
+        intercept = np.ma.masked_all_like(ma_stack[0])
+        detrended_std = np.ma.masked_all_like(ma_stack[0])
+
+        #While loop here is to iteratively remove outliers, if desired
+        #Maximum number of iterations
+        max_n = 3
+        n = 1
+        while(y_orig.count() < valid_sample_count and n <= max_n):
+            valid_pixel_count = np.sum(valid_mask_2D)
+            valid_sample_count = y_orig.count()
+            print("%i valid pixels with up to %i timestamps: %i total valid samples" % \
+                    (valid_pixel_count, ma_stack.shape[0], valid_sample_count))
+            if model == 'theilsen' or model == 'ransac':
+                #Create empty arrays for slope and intercept results 
+                m = np.ma.masked_all(y_orig.shape[1])
+                b = np.ma.masked_all(y_orig.shape[1])
+                if parallel:
+                    import multiprocessing as mp
+                    if n_cpu is None:
+                        n_cpu = iolib.cpu_count(logical=True)
+                    n_cpu = int(n_cpu)
+                    print("Running in parallel with %i processes" % n_cpu)
+                    pool = mp.Pool(processes=n_cpu)
+                    results = pool.map(do_robust_linreg, [(date_list_o, y_orig[:,n], model) for n in range(y_orig.shape[1])])
+                    results = np.array(results)
+                    m = results[:,0]
+                    b = results[:,1]
+                else:
+                    for n in range(y_orig.shape[1]):
+                        print('%i of %i px' % (n, y_orig.shape[1]))
+                        y = y_orig[:,n]
+                        m[n], b[n] = do_robust_linreg(date_list_o, y, model)
             else:
-                for n in range(y_orig.shape[1]):
-                    print('%i of %i px' % (n, y_orig.shape[1]))
-                    y = y_orig[:,n]
-                    m[n], b[n] = do_robust_linreg(date_list_o, y, model)
-        else:
-            #if model == 'linear':
-            #Remove masks, fills with fill_value
-            y = y_orig.data
-            #Independent variable is time ordinal
-            x = date_list_o
-            x_mean = x.mean()
-            x = x.data
-            #Prepare matrices
-            X = np.c_[x, np.ones_like(x)]
-            a = np.swapaxes(np.dot(X.T, (X[None, :, :] * mask.T[:, :, None])), 0, 1)
-            b = np.dot(X.T, (mask*y))
-            #Solve for slope/intercept
-            print("Solving for trend")
-            r = np.linalg.solve(a, b.T)
-            #Reshape to original dimensions
-            #r = r.reshape(origshape[1], origshape[2], 2)
-            m = r[:,0]
-            b = r[:,1]
+                #if model == 'linear':
+                #Remove masks, fills with fill_value
+                y = y_orig.data
+                #Independent variable is time ordinal
+                x = date_list_o
+                x_mean = x.mean()
+                x = x.data
+                #Prepare matrices
+                X = np.c_[x, np.ones_like(x)]
+                a = np.swapaxes(np.dot(X.T, (X[None, :, :] * valid_mask.T[:, :, None])), 0, 1)
+                b = np.dot(X.T, (valid_mask*y))
+                #Solve for slope/intercept
+                print("Solving for trend")
+                r = np.linalg.solve(a, b.T)
+                #Reshape to original dimensions
+                m = r[:,0]
+                b = r[:,1]
+
+            print("Computing residuals")
+            #Compute model fit values for each valid timestamp
+            y_fit = m*np.ma.array(date_list_o.data[:,None]*valid_mask, mask=y_orig.mask) + b 
+            #Compute residuals
+            resid = y_orig - y_fit
+            #Compute detrended std
+            #resid_std = resid.std(axis=0)
+            resid_std = mad(resid, axis=0)
+
+            if remove_outliers and n < max_n:
+                print("Removing residual outliers > 3-sigma")
+                outlier_sigma = 3.0
+                #Mask any residuals outside valid range
+                valid_mask = valid_mask & (np.abs(resid) < (resid_std * outlier_sigma)).filled(False)
+                #Extract new valid samples
+                y_orig = np.ma.array(y_orig, mask=~valid_mask)
+                #Update valid mask
+                valid_count = (y_orig.count(axis=0) >= n_thresh)
+                y_orig = y_orig[:, valid_count]
+                valid_mask_2D[valid_mask_2D] = valid_count
+                #Extract 1D time series for all valid pixel locations
+                #Extract mask and invert: True where data is available
+                valid_mask = ~(np.ma.getmaskarray(y_orig))
+                #remove_outliers = False
+            else:
+                break
+            n += 1
 
         #Fill in the valid indices
-        slope[valid_mask] = m 
-        intercept[valid_mask] = b
+        slope[valid_mask_2D] = m 
+        intercept[valid_mask_2D] = b
+        detrended_std[valid_mask_2D] = resid_std
 
         #Smooth the result
         if smooth:
@@ -1081,21 +1125,15 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
             slope = filtlib.rolling_fltr(slope, size=size, circular=False)
             intercept = filtlib.rolling_fltr(intercept, size=size, circular=False)
 
-        #Compute detrended std
-        y_fit = m*np.ma.array(date_list_o.data[:,None]*mask, mask=y_orig.mask) + b 
-        resid = y_orig - y_fit
-        resid_std = resid.std(axis=0)
-        detrended_std[valid_mask] = resid_std
-
         if rsq:
             rsquared = np.ma.masked_all_like(ma_stack[0])
             SStot = np.sum((y_orig - y_orig.mean(axis=0))**2, axis=0).data
             SSres = np.sum(resid**2, axis=0).data
-            count = y_orig.count(axis=0)
             r2 = 1 - (SSres/SStot)
-            rsquared[valid_mask] = r2
+            rsquared[valid_mask_2D] = r2
 
         if conf_test:
+            count = y_orig.count(axis=0)
             SE = np.sqrt(SSres/(count - 2)/np.sum((x - x_mean)**2, axis=0))
             T0 = r[:,0]/SE
             alpha = 0.05
@@ -1105,8 +1143,8 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
                 t1 = abs(t.ppf(alpha/2.0,c-2))
                 ta[(count == c)] = t1
             sig = np.logical_and((T0 > -ta), (T0 < ta))
-            sigmask = np.zeros_like(valid_mask, dtype=bool)
-            sigmask[valid_mask] = ~sig
+            sigmask = np.zeros_like(valid_mask_2D, dtype=bool)
+            sigmask[valid_mask_2D] = ~sig
             #SSerr = SStot - SSres
             #F0 = SSres/(SSerr/(count - 2))
             #from scipy.stats import f
