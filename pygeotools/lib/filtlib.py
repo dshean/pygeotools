@@ -245,7 +245,15 @@ def gaussfill(dem, size=3, newmask=None):
 
 def highpass(dem, size=None, sigma=None):
     dem_gauss = gauss_fltr_astropy(dem, size=size, sigma=sigma)
-    return dem - dem_gauss 
+    #These will have negative values, whcih is a problem for unsigned inputs
+    hp = dem.astype(float) - dem_gauss.astype(float)
+    #If unsigned
+    #https://stackoverflow.com/questions/37726830/how-to-determine-if-a-number-is-any-type-of-int-core-or-numpy-signed-or-not
+    #if isinstance(dem.dtype, np.unsignedint):
+    if hp.min() < 0:
+        hp -= hp.min()
+    #Should do a better job of normalizing to output range here
+    return hp.astype(dem.dtype)
 
 def lowpass(dem, size=None, sigma=None):
     dem_gauss = gauss_fltr_astropy(dem, size=size, sigma=sigma)
