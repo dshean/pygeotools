@@ -180,6 +180,16 @@ def sort_fn_list(fn_list):
     fn_list_sort = [fn for (dt,fn) in sorted(zip(dt_list,fn_list))]
     return fn_list_sort
 
+def fix_repeat_dt(dt_list, offset_s=0.001):
+    """Add some small offset to remove duplicate times
+    Needed for xarray interp, which expects monotonically increasing times
+    """
+    idx = (np.diff(dt_list) == timedelta(0))
+    while np.any(idx):
+        dt_list[idx.nonzero()[0] + 1] += timedelta(seconds=offset_s)
+        idx = (np.diff(dt_list) == timedelta(0))
+    return dt_list
+
 def get_dt_list(fn_list):
     """Get list of datetime objects, extracted from a filename
     """
@@ -448,6 +458,7 @@ def dt_cluster(dt_list, dt_thresh=16.0):
 def sinceEpoch(dt):
     return time.mktime(dt.timetuple())
 
+#These can have some issues with daylight savings (sigh)
 def dt2decyear(dt):
     """Convert datetime to decimal year
     """
