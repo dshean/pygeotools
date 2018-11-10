@@ -1920,8 +1920,19 @@ def get_xy_ma(bma, gt, stride=1, origmask=True, newmask=None):
     mY = np.ma.array(mY, mask=mask, fill_value=0)
     return mX, mY
 
+def get_xy_1D(ds, stride=1, getval=False):
+    """Return 1D arrays of x and y map coordinates for input GDAL Dataset 
+    """
+    gt = ds.GetGeoTransform()
+    #stride = stride_m/gt[1]
+    pX = np.arange(0, ds.RasterXSize, stride)
+    pY = np.arange(0, ds.RasterYSize, stride)
+    mX, dummy = pixelToMap(pX, pY[0], gt)
+    dummy, mY = pixelToMap(pX[0], pY, gt)
+    return mX, mY
+
 def get_xy_grids(ds, stride=1, getval=False):
-    """Return arrays of x and y map coordinates for input GDAL Dataset 
+    """Return 2D arrays of x and y map coordinates for input GDAL Dataset 
     """
     gt = ds.GetGeoTransform()
     #stride = stride_m/gt[1]
