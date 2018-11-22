@@ -78,6 +78,17 @@ def fn_list_check(fn_list):
             status = False
     return status
 
+def fn_list_valid(fn_list):
+    print('%i input fn' % len(fn_list))
+    out_list = []
+    for fn in fn_list:
+        if not fn_check(fn):
+            print('Unable to find: %s' % fn)
+        else:
+            out_list.append(fn)
+    print('%i output fn' % len(out_list))
+    return out_list 
+
 #Wrapper around gdal.Open
 def fn_getds(fn):
     """Wrapper around gdal.Open()
@@ -489,9 +500,11 @@ def cpu_count(logical=True):
 def setstripe(dir, threads=cpu_count()):
     if not os.path.exists(dir): 
         os.makedirs(dir)
-    #Use 'df -T' to determine filesystem of directory
+    #import socket
+    #if 'nasa' in socket.getfqdn():
+    #Better to use 'df -T' to determine filesystem of directory
     #Can do this with psutil Python lib, but need to also find mount point of file
-    if 'lustre' in subprocess.check_output(['df','-T',dir]):
+    if 'lustre' in str(subprocess.check_output(['df','-T',dir])):
         cmd = ['lfs', 'setstripe', dir, '-c', str(threads)]
         print(' '.join(cmd))
         subprocess.call(cmd)

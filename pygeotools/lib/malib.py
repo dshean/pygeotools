@@ -88,6 +88,10 @@ class DEMStack:
                 self.outdir = outdir
                 #raise IOError('Specified output directory does not exist')
 
+        #If we're on Pleiades, make sure striping is set up properly on output directory
+        #This now has check for lustre filesystem
+        iolib.setstripe(outdir, n_cpu)
+
         #Flag specifying whether user has specified output stack filename
         #Hack to prevent new stack_fn generation if files are missing or sorted
         self.user_stack_fn = False
@@ -1511,6 +1515,8 @@ def mad(a, axis=None, c=1.4826, return_med=False):
             out = fast_median(np.fabs(a - med)) * c
         else:
             med = np.ma.median(a, axis=axis)
+            #This is necessary for broadcasting
+            #med = np.expand_dims(med, axis=axis)
             out = np.ma.median(np.ma.fabs(a - med), axis=axis) * c
     else:
         out = np.ma.masked
