@@ -358,7 +358,7 @@ def parse_res(res, src_ds_list=None, t_srs=None):
         res = float(res)
     return res
 
-def parse_extent(extent, src_ds_list, t_srs=None):
+def parse_extent(extent, src_ds_list=None, t_srs=None):
     """Parse arbitrary input extent
 
     Parameters
@@ -376,9 +376,10 @@ def parse_extent(extent, src_ds_list, t_srs=None):
         Output extent [xmin, ymin, xmax, ymax] 
         None if source extent should be preserved
     """
+
     #Default to using first t_srs for extent calculations
-    #Assumes src_ds_list is not None
-    t_srs = parse_srs(t_srs, src_ds_list)
+    if t_srs is not None:
+        t_srs = parse_srs(t_srs, src_ds_list)
 
     #Valid strings
     extent_str_list = ['first', 'last', 'intersection', 'union']
