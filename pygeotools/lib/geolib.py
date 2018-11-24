@@ -1640,7 +1640,7 @@ def geom2mask_PIL(geom, ds):
     mask = np.array(img).astype(bool)
     return ~mask
 
-def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hillshade', returnma=False):
+def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hillshade', returnma=False, computeEdges=False):
     """
     Wrapper to allow gdaldem calculations for arbitrary NumPy masked array input
     Untested, work in progress placeholder
@@ -1652,7 +1652,8 @@ def gdaldem_mem_ma(ma, ds=None, res=None, extent=None, srs=None, processing='hil
         ds = mem_ds_copy(ds)
     b = ds.GetRasterBand(1)
     b.WriteArray(ma)
-    return gdaldem_mem_ds(ds, processing=processing, returnma=returnma)
+    out = gdaldem_mem_ds(ds, processing=processing, returnma=returnma)
+    return out 
 
 #Should add gdal.DEMProcessingOptions support
 def gdaldem_mem_ds(ds, processing='hillshade', returnma=False, computeEdges=False):
@@ -1663,8 +1664,11 @@ def gdaldem_mem_ds(ds, processing='hillshade', returnma=False, computeEdges=Fals
     """
     choices = ["hillshade", "slope", "aspect", "color-relief", "TRI", "TPI", "Roughness"]
     out = None
+    scale=1.0
+    if not get_ds_srs(ds).IsProjected():
+        scale=111120
     if processing in choices:
-        out = gdal.DEMProcessing('', ds, processing, format='MEM', computeEdges=computeEdges)
+        out = gdal.DEMProcessing('', ds, processing, format='MEM', computeEdges=computeEdges, scale=scale)
     else:
         print("Invalid processing choice")
         print(choices)
@@ -1950,7 +1954,7 @@ def fitPlaneLSQ(XYZ):
     G[:,0] = XYZ[:,0]  #X
     G[:,1] = XYZ[:,1]  #Y
     Z = XYZ[:,2]
-    coeff,resid,rank,s = np.linalg.lstsq(G,Z)
+    coeff,resid,rank,s = np.linalg.lstsq(G,Z,rcond=None)
     return coeff
 
 def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
