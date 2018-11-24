@@ -1516,7 +1516,7 @@ def mad(a, axis=None, c=1.4826, return_med=False):
         else:
             med = np.ma.median(a, axis=axis)
             #This is necessary for broadcasting
-            #med = np.expand_dims(med, axis=axis)
+            med = np.expand_dims(med, axis=axis)
             out = np.ma.median(np.ma.fabs(a - med), axis=axis) * c
     else:
         out = np.ma.masked
