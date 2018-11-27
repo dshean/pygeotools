@@ -1982,27 +1982,75 @@ def fitPlaneLSQ(XYZ):
     coeff,resid,rank,s = np.linalg.lstsq(G,Z,rcond=None)
     return coeff
 
+#Generic 2D polynomial fits
+#https://stackoverflow.com/questions/7997152/python-3d-polynomial-surface-fit-order-dependent
+def polyfit2d(x, y, z, order=1):
+    import itertools
+    ncols = (order + 1)**2
+    G = np.zeros((x.size, ncols))
+    ij = itertools.product(range(order+1), range(order+1))
+    for k, (i,j) in enumerate(ij):
+        G[:,k] = x**i * y**j
+    m, _, _, _ = np.linalg.lstsq(G, z, rcond=None)
+    return m
+
+def polyval2d(x, y, m):
+    import itertools
+    order = int(np.sqrt(len(m))) - 1
+    ij = itertools.product(range(order+1), range(order+1))
+    #0 could be a valid value
+    z = np.zeros_like(x)
+    for a, (i,j) in zip(m, ij):
+        z += a * x**i * y**j
+    return z 
+
+#Should use numpy.polynomial.polynomial.polyvander2d
+def ma_fitpoly(bma, order=1, gt=None, perc=(2,98), origmask=True):
+    """Fit a plane to values in input array
+    """
+    if gt is None:
+        gt = [0, 1, 0, 0, 0, -1] 
+    #Filter, can be useful to remove outliers
+    if perc is not None:
+        from pygeotools.lib import filtlib
+        bma_f = filtlib.perc_fltr(bma, perc)
+    else:
+        bma_f = bma
+    #Get indices
+    x, y = get_xy_ma(bma_f, gt, origmask=origmask)
+    #Fit only where we have valid data
+    bma_mask = np.ma.getmaskarray(bma)
+    coeff = polyfit2d(x[~bma_mask].data, y[~bma_mask].data, bma[~bma_mask].data, order=order) 
+    #For 1D, these are: c, y, x, xy
+    print(coeff)
+    #Compute values for all x and y, unless origmask=True
+    vals = polyval2d(x, y, coeff) 
+    resid = bma - vals
+    return vals, resid, coeff
+
 def ma_fitplane(bma, gt=None, perc=(2,98), origmask=True):
     """Fit a plane to values in input array
     """
     if gt is None:
         gt = [0, 1, 0, 0, 0, -1] 
-    x, y = get_xy_ma(bma, gt, origmask=origmask)
-    #x = np.ma.array(x, mask=np.ma.getmaskarray(bma), fill_value=0)
-    #y = np.ma.array(y, mask=np.ma.getmaskarray(bma), fill_value=0)
+    #Filter, can be useful to remove outliers
     if perc is not None:
         from pygeotools.lib import filtlib
         bma_f = filtlib.perc_fltr(bma, perc)
-        x_f = np.ma.array(x, mask=np.ma.getmaskarray(bma_f), fill_value=0)
-        y_f = np.ma.array(y, mask=np.ma.getmaskarray(bma_f), fill_value=0)
-        xyz = np.vstack((x_f.compressed(),y_f.compressed(),bma_f.compressed())).T
     else:
-        xyz = np.vstack((x.compressed(),y.compressed(),bma.compressed())).T
+        bma_f = bma
+    #Get indices
+    x_f, y_f = get_xy_ma(bma_f, gt, origmask=origmask)
+    #Regardless of desired output (origmask True or False), for fit, need to limit to valid pixels only 
+    bma_f_mask = np.ma.getmaskarray(bma_f)
+    #Create xyz stack, needed for SVD
+    xyz = np.vstack((np.ma.array(x_f, mask=bma_f_mask).compressed(), \
+            np.ma.array(y_f, mask=bma_f_mask).compressed(), bma_f.compressed())).T
     #coeff = fitPlaneSVD(xyz)
     coeff = fitPlaneLSQ(xyz)
     print(coeff)
-    vals = coeff[0]*x + coeff[1]*y + coeff[2]
-    resid = bma - vals
+    vals = coeff[0]*x_f + coeff[1]*y_f + coeff[2]
+    resid = bma_f - vals
     return vals, resid, coeff
 
 def ds_fitplane(ds):
