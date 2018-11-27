@@ -57,13 +57,12 @@ def sigma_fltr(dem, n=3):
     out = range_fltr(dem, rangelim)
     return out
 
-def mad_fltr(dem, n=2):
+def mad_fltr(dem, n=3):
     """Median absolute deviation * factor filter
 
     Robust outlier removal
     """
-    med = np.ma.median(dem)
-    mad = malib.mad(dem)
+    mad, med = malib.mad(dem, return_med=True)
     print('Excluding values outside of range: {1:0.2f} +/- {0}*{2:0.2f}'.format(n, med, mad))
     rangelim = (med - n*mad, med + n*mad)
     out = range_fltr(dem, rangelim)
@@ -74,14 +73,18 @@ def mad_fltr(dem, n=2):
 #Slope filter
 #Note, Noh and Howat set minimum slope of 20 deg for coregistration purposes
 #Should allow for input of masked array here, use geolib.gdaldem_mem_ma
-def slope_fltr(dem_fn, slopelim=(0, 40)):
-    from pygeotools.lib import geolib
-    #perc = (0.01, 99.99)
-    #slopelim = malib.calcperc(dem_slope, perc)
+def slope_fltr_fn(dem_fn, slopelim=(0,40)):
     dem_ds = iolib.fn_getds(dem_fn)
+    return slope_fltr_ds(dem_ds, slopelim)
+
+def slope_fltr_ds(dem_ds, slopelim=(0, 40)):
+    print("Slope filter: %0.2f - %0.2f" % slope_lim)
+    from pygeotools.lib import geolib
     dem = iolib.ds_getma(dem_ds)
     dem_slope = geolib.gdaldem_mem_ds(dem_ds, processing='slope', returnma=True, computeEdges=True)
+    print("Initial count: %i" % dem_slope.count())
     dem_slope = range_fltr(dem_slope, slopelim)
+    print("Final count: %i" % dem_slope.count())
     return np.ma.array(dem, mask=np.ma.getmaskarray(dem_slope))
 
 def gauss_fltr(dem, sigma=1):
