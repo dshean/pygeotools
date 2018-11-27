@@ -218,6 +218,20 @@ def nps2geoid(x, y, z=0.0, geoid=nps_egm08_srs):
 def sps2geoid(x, y, z=0.0, geoid=sps_egm08_srs):
     return cT_helper(x, y, z, sps_srs, geoid)
 
+def localtmerc_ds(ds):
+    lon, lat = get_center(ds, t_srs=wgs_srs) 
+    return localtmerc(lon, lat)
+
+def localtmerc(lon, lat):
+    local_srs = osr.SpatialReference()
+    local_proj = '+proj=tmerc +lat_0=%0.7f +lon_0=%0.7f +datum=WGS84 +units=m +no_defs ' % (lat, lon)
+    local_srs.ImportFromProj4(local_proj)
+    return local_srs
+
+def localortho_ds(ds):
+    lon, lat = get_center(ds, t_srs=wgs_srs) 
+    return localortho(lon, lat)
+
 def localortho(lon, lat):
     """Create srs for local orthographic projection centered at lat, lon
     """
