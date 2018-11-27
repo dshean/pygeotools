@@ -1716,6 +1716,7 @@ def get_bins(x, bin_width=100.0, bin_range=None):
     return bin_edges, bin_centers
 
 #Compute statistic for each bin using scipy binned_statistic function
+#Use np.digitize here?
 def bin_stats(x, y, stat='median', nbins=128, bin_range=None):
     import scipy.stats
     if bin_range is None:
