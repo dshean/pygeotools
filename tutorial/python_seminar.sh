@@ -87,7 +87,7 @@ dem_list_warp=$(echo $dem_list | sed 's/.tif/_warp.tif/g')
 imviewer.py -link $dem_list_warp
 
 ------------------
-compute_dz.py
+compute_diff.py
 ------------------
 
 #30-m NED from 1970
@@ -103,17 +103,17 @@ warptool.py -tr min -te $summer_2015 -t_srs $summer_2015 $fn_list
 
 fn_list_warp=$(echo $fn_list | sed 's/.tif/_warp.tif/g')
 
-compute_dz.py -h
+compute_diff.py -h
 pause 'Press [Enter] key to continue...'
 
-#compute_dz.py ${ned_1970%.*}_warp.tif ${lidar_2008%.*}_warp.tif
-compute_dz.py ${lidar_2008%.*}_warp.tif ${summer_2015%.*}_warp.tif
-compute_dz.py ${ned_1970%.*}_warp.tif ${summer_2015%.*}_warp.tif
+#compute_diff.py ${ned_1970%.*}_warp.tif ${lidar_2008%.*}_warp.tif
+compute_diff.py ${lidar_2008%.*}_warp.tif ${summer_2015%.*}_warp.tif
+compute_diff.py ${ned_1970%.*}_warp.tif ${summer_2015%.*}_warp.tif
 
-#parallel "clip_raster_by_shp.py -extent raster {} $conus_24k" ::: *eul.tif
+#parallel "clip_raster_by_shp.py -extent raster {} $conus_24k" ::: *diff.tif
 
-dz=${lidar_2008%.*}_warp_${summer_2015%.*}_warp_dz_eul.tif
-dz=${ned_1970%.*}_warp_${summer_2015%.*}_warp_dz_eul.tif
+dz=${lidar_2008%.*}_warp_${summer_2015%.*}_warp_diff.tif
+dz=${ned_1970%.*}_warp_${summer_2015%.*}_warp_diff.tif
 
 clip_raster_by_shp.py -extent raster $dz $conus_24k
 
