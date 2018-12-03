@@ -329,8 +329,8 @@ def parse_res(res, src_ds_list=None, t_srs=None):
     #Assumes src_ds_list is not None
     t_srs = parse_srs(t_srs, src_ds_list)
 
-    #Valid strings
-    res_str_list = ['first', 'last', 'min', 'max', 'mean', 'med']
+    #Valid options for res
+    res_str_list = ['first', 'last', 'min', 'max', 'mean', 'med', 'common_scale_factor']
 
     #Compute output resolution in t_srs
     if res in res_str_list and src_ds_list is not None:
@@ -348,6 +348,9 @@ def parse_res(res, src_ds_list=None, t_srs=None):
             res = res_stats[2]
         elif res == 'med':
             res = res_stats[3]
+        elif res == 'common_scale_factor':
+            #Determine res to upsample min and downsample max by constant factor
+            res = np.sqrt(res_stats[1]/res_stats[0]) * res_stats[0]
     elif res == 'source':
         res = None
     elif isinstance(res, gdal.Dataset):

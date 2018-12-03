@@ -17,7 +17,7 @@ def fmt_choices(param, choices):
 
 def getparser():
     #Note: Don't want to formally specify these choices, as it limits specification of arbitrary filenames
-    tr_choices = ['first', 'last', 'min', 'max', 'mean', 'med', 'source', '"fn"', '"res"']
+    tr_choices = ['first', 'last', 'min', 'max', 'mean', 'med', 'common_scale_factor', 'source', '"fn"', '"res"']
     te_choices = ['first', 'last', 'intersection', 'union', 'source', '"fn"', '"xmin ymin xmax ymax"']
     t_srs_choices = ['first', 'last', '"fn"', '"proj4str"']
     #Should read these directly from GDAL
