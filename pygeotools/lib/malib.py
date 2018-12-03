@@ -1625,6 +1625,32 @@ def get_stats(a, full=False):
                 fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
     return stats
 
+def get_stats_dict(a_in, full=True):
+    """Compute and print statistics for input array
+    """
+    d = {}
+    a = checkma(a_in)
+    d['count'] = a.count()
+    thresh = 4E6
+    if not full and d['count'] > thresh:
+        a = a.compressed()
+        stride = int(np.around(a.size / thresh))
+        #a = np.ma.array(a[::stride])
+        a = a[::stride]
+    d['min'] = a.min()
+    d['max'] = a.max()
+    d['ptp'] = d['max'] - d['min']
+    d['mean'] = a.mean(dtype='float64')
+    d['std'] = a.std(dtype='float64')
+    d['mad'], d['med'] = mad(a, return_med=True)
+    d['p16'], d['p84'], d['spread'] = robust_spread(a)
+    from scipy.stats.mstats import mode 
+    d['mode'] = mode(a, axis=None)[0]
+    for i in d:
+        d[i] = float(d[i])
+    d['count'] = int(d['count'])
+    return d
+
 def print_stats(a, full=False):
     stats = get_stats(a, full)
     print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
@@ -1636,7 +1662,7 @@ def rmse(a):
     return rmse
 
 #Check that input is a masked array
-def checkma(a, fix=True):
+def checkma(a, fix=False):
     #isinstance(a, np.ma.MaskedArray)
     if np.ma.is_masked(a):
         out=a
