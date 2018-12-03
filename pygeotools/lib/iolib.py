@@ -176,6 +176,8 @@ def get_sub_dim(src_ds, scale=None, maxdim=1024):
         Numper of samples in subsampled output
     nl
         Numper of lines in subsampled output
+    scale 
+        Final scaling factor
     """
     ns = src_ds.RasterXSize
     nl = src_ds.RasterYSize
@@ -188,16 +190,16 @@ def get_sub_dim(src_ds, scale=None, maxdim=1024):
     if scale > 1:
         ns = int(round(ns/scale))
         nl = int(round(nl/scale))
-    return ns, nl
+    return ns, nl, scale
 
-def fn_getma_sub(fn, bnum=1, scale=None, maxdim=1024.): 
+def fn_getma_sub(fn, bnum=1, scale=None, maxdim=1024., return_ds=False): 
     ds = gdal.Open(fn)
-    return ds_getma_sub(ds, bnum, scale, maxdim)
+    return ds_getma_sub(ds, bnum=bnum, scale=scale, maxdim=maxdim, return_ds=return_ds)
 
 #Load a subsampled array
 #Can specify scale factor or max dimension
 #No need to load the entire dataset for stats computation
-def ds_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):    
+def ds_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024., return_ds=False):    
     """Load a subsampled array, rather than full resolution
 
     This is useful when working with large rasters
@@ -223,11 +225,23 @@ def ds_getma_sub(src_ds, bnum=1, scale=None, maxdim=1024.):
     #print src_ds.GetFileList()[0]
     b = src_ds.GetRasterBand(bnum)
     b_ndv = get_ndv_b(b)
-    ns, nl = get_sub_dim(src_ds, scale, maxdim)
+    ns, nl, scale = get_sub_dim(src_ds, scale, maxdim)
     #The buf_size parameters determine the final array dimensions
     b_array = b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)
     bma = np.ma.masked_values(b_array, b_ndv)
-    return bma
+    out = bma
+    if return_ds:
+        dtype = src_ds.GetRasterBand(1).DataType
+        src_ds_sub = gdal.GetDriverByName('MEM').Create('', ns, nl, 1, dtype)
+        gt = np.array(src_ds.GetGeoTransform())
+        gt[[1,5]] = gt[[1,5]]*scale
+        src_ds_sub.SetGeoTransform(list(gt))
+        src_ds_sub.SetProjection(src_ds.GetProjection())
+        b = src_ds_sub.GetRasterBand(1)
+        b.WriteArray(bma)
+        b.SetNoDataValue(b_ndv)
+        out = (bma, src_ds_sub)
+    return out
 
 #Note: need to consolidate with warplib.writeout (takes ds, not ma)
 #Add option to build overviews when writing GTiff
