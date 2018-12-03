@@ -455,7 +455,7 @@ def invertGeoTransform(geoTransform):
     outGeoTransform[3] = (-geoTransform[1] * geoTransform[3] + geoTransform[0] * geoTransform[4]) * invDet
     return outGeoTransform
 
-def block_stats(x,y,z,ds,stat='median'):
+def block_stats(x,y,z,ds,stat='median',bins=None):
     """Compute points on a regular grid (matching input GDAL Dataset) from scattered point data using specified statistic
 
     Wrapper for  scipy.stats.binned_statistic_2d
@@ -466,8 +466,8 @@ def block_stats(x,y,z,ds,stat='median'):
     extent = ds_extent(ds)
     #[[xmin, xmax], [ymin, ymax]]
     range = [[extent[0], extent[2]], [extent[1], extent[3]]]
-    #bins = (ns, nl)
-    bins = (ds.RasterXSize, ds.RasterYSize)
+    if bins is None:
+        bins = (ds.RasterXSize, ds.RasterYSize)
     if stat == 'max':
         stat = np.max
     elif stat == 'min':
@@ -2210,6 +2210,7 @@ def get_dem_mosaic_cmd(fn_list, o, fn_list_txt=None, tr=None, t_srs=None, t_proj
     if t_srs is not None:
         #cmd.extend(['--t_srs', t_srs.ExportToProj4()])
         cmd.extend(['--t_srs', '"%s"' % t_srs.ExportToProj4()])
+        #cmd.extend(['--t_srs', "%s" % t_srs.ExportToProj4()])
     if t_projwin is not None:
         cmd.append('--t_projwin')
         cmd.extend(t_projwin)
