@@ -181,10 +181,6 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             #In theory, NN should be fine since we already smoothed.  In practice, cubic still provides slightly better results
             #gra = gdal.GRA_NearestNeighbour
     
-    #Note: default maxerror=0.0
-    #Shouldn't neet to specify srs?
-    #result = gdal.ReprojectImage(src_ds, dst_ds, gra)
-    
     """
     if not verbose:
         #Suppress GDAL progress bar
@@ -192,6 +188,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         sys.stdout = open(os.devnull, 'w')
     """
 
+    #Note: default maxerror=0.0, second 0.0 argument
     gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), gra, 0.0, 0.0, prog_func)
 
     """
