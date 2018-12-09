@@ -582,10 +582,11 @@ class DEMStack:
 
     def compute_trend(self):
         self.linreg()
-        self.stack_trend.set_fill_value(-9999)
-        self.stack_intercept.set_fill_value(-9999) 
-        self.stack_detrended_std.set_fill_value(-9999)
-        #self.stack_rsquared.set_fill_value(-9999) 
+        if self.stack_trend is not None:
+            self.stack_trend.set_fill_value(-9999)
+            self.stack_intercept.set_fill_value(-9999) 
+            self.stack_detrended_std.set_fill_value(-9999)
+            #self.stack_rsquared.set_fill_value(-9999) 
 
     def write_stats(self):
         #if not hasattr(self, 'stack_count'):
