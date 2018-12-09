@@ -2214,6 +2214,7 @@ def get_dem_mosaic_cmd(fn_list, o, fn_list_txt=None, tr=None, t_srs=None, t_proj
     if t_projwin is not None:
         cmd.append('--t_projwin')
         cmd.extend(t_projwin)
+        cmd.append('--force-projwin')
     if tile is not None:
         #Not yet implemented
         #cmd.extend(tile_list)
