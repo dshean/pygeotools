@@ -996,7 +996,7 @@ def ma_linreg(ma_stack, dt_list, n_thresh=2, model='linear', dt_stack_ptp=None, 
     #Need to check type of input dt_list
     #For now assume it is Python datetime objects 
     from pygeotools.lib import timelib
-    date_list_o = timelib.np_dt2o(dt_list)
+    date_list_o = np.ma.array(timelib.dt2o(dt_list))
     date_list_o.set_fill_value(0.0)
 
     #ma_stack = ma_stack[:,398:399,372:373]
