@@ -1642,7 +1642,8 @@ def get_stats_dict(a_in, full=True):
     d['ptp'] = d['max'] - d['min']
     d['mean'] = a.mean(dtype='float64')
     d['std'] = a.std(dtype='float64')
-    d['mad'], d['med'] = mad(a, return_med=True)
+    d['nmad'], d['med'] = mad(a, return_med=True)
+    d['median'] = d['med']
     d['p16'], d['p84'], d['spread'] = robust_spread(a)
     from scipy.stats.mstats import mode 
     d['mode'] = mode(a, axis=None)[0]
