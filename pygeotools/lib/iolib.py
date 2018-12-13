@@ -512,13 +512,13 @@ def cpu_count(logical=True):
     return ncpu
 
 def setstripe(dir, threads=cpu_count()):
-    if not os.path.exists(dir): 
-        os.makedirs(dir)
     #import socket
     #if 'nasa' in socket.getfqdn():
     #Better to use 'df -T' to determine filesystem of directory
     #Can do this with psutil Python lib, but need to also find mount point of file
-    if 'lustre' in str(subprocess.check_output(['df','-T',dir])):
+    if 'lustre' in str(subprocess.check_output(['df','-T'])):
+        if not os.path.exists(dir): 
+            os.makedirs(dir)
         cmd = ['lfs', 'setstripe', dir, '-c', str(threads)]
         print(' '.join(cmd))
         subprocess.call(cmd)
