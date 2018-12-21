@@ -63,7 +63,7 @@ def mad_fltr(dem, n=3):
     Robust outlier removal
     """
     mad, med = malib.mad(dem, return_med=True)
-    print('Excluding values outside of range: {1:0.2f} +/- {0}*{2:0.2f}'.format(n, med, mad))
+    print('Excluding values outside of range: {1:0.3f} +/- {0}*{2:0.3f}'.format(n, med, mad))
     rangelim = (med - n*mad, med + n*mad)
     out = range_fltr(dem, rangelim)
     return out
