@@ -516,12 +516,14 @@ def setstripe(dir, threads=cpu_count()):
     #if 'nasa' in socket.getfqdn():
     #Better to use 'df -T' to determine filesystem of directory
     #Can do this with psutil Python lib, but need to also find mount point of file
-    if 'lustre' in str(subprocess.check_output(['df','-T'])):
-        if not os.path.exists(dir): 
-            os.makedirs(dir)
-        cmd = ['lfs', 'setstripe', dir, '-c', str(threads)]
-        print(' '.join(cmd))
-        subprocess.call(cmd)
+    if dir is not None:
+        if 'lustre' in str(subprocess.check_output(['df','-T'])):
+            if os.path.exists(dir): 
+                if threads is None:
+                    threads = cpu_count()
+                cmd = ['lfs', 'setstripe', dir, '-c', str(threads)]
+                print(' '.join(cmd))
+                subprocess.call(cmd)
 
 #This is a shared directory for files like LULC, used by multiple tools 
 #Default location is $HOME/data

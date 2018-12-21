@@ -77,7 +77,7 @@ class DEMStack:
         if outdir is None:
             #Use directory of first filename
             if self.fn_list:
-                self.outdir = os.path.split(self.fn_list[0])[0]
+                self.outdir = os.path.abspath(os.path.split(self.fn_list[0])[0])
             else:
                 self.outdir = os.getcwd()
         else:
@@ -90,7 +90,7 @@ class DEMStack:
 
         #If we're on Pleiades, make sure striping is set up properly on output directory
         #This now has check for lustre filesystem
-        iolib.setstripe(outdir, n_cpu)
+        iolib.setstripe(self.outdir, self.n_cpu)
 
         #Flag specifying whether user has specified output stack filename
         #Hack to prevent new stack_fn generation if files are missing or sorted
