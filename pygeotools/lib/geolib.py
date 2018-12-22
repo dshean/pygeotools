@@ -372,15 +372,15 @@ def dms2dd(d,m,s):
     return dd
 
 #Note: this needs some work, not sure what input str format was supposed to be
-def dms2dd_str(dms_str):
+def dms2dd_str(dms_str, delim=' ', fmt=None):
     import re
     #dms_str = re.sub(r'\s', '', dms_str)
-    if re.match('[swSW]', dms_str):
+    if re.search('[swSW]', dms_str):
         sign = -1
     else:
         sign = 1
     #(degree, minute, second, frac_seconds) = map(int, re.split('\D+', dms_str))
-    (degree, minute, second) = dms_str.split()[0:3]
+    (degree, minute, second) = dms_str.split(delim)[0:3]
     #dd = sign * (int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 36000)
     dd = dms2dd(int(degree)*sign, int(minute), float(second)) 
     return dd
