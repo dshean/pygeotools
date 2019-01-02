@@ -100,7 +100,7 @@ def fn_getds(fn):
         print("Unable to find %s" % fn)
     return ds
 
-def fn_getma(fn, bnum=1):
+def fn_getma(fn, bnum=1, return_ds=False):
     """Get masked array from input filename
 
     Parameters
@@ -117,7 +117,10 @@ def fn_getma(fn, bnum=1):
     """
     #Add check for filename existence
     ds = fn_getds(fn)
-    return ds_getma(ds, bnum=bnum)
+    out = ds_getma(ds, bnum=bnum)
+    if return_ds:
+        out = (out, ds)
+    return out
 
 #Given input dataset, return a masked array for the input band
 def ds_getma(ds, bnum=1):
