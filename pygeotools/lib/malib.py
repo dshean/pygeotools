@@ -73,6 +73,8 @@ class DEMStack:
         #    self.date_list_o = self.date_list_o[idx]
         #    self.fn_list = (np.array(self.fn_list)[idx]).tolist()
 
+        #TODO: cleanup the outdir and stack_fn handling
+
         #Determine appropriate stack filename
         if outdir is None:
             #Use directory of first filename
@@ -80,17 +82,6 @@ class DEMStack:
                 self.outdir = os.path.abspath(os.path.split(self.fn_list[0])[0])
             else:
                 self.outdir = os.getcwd()
-        else:
-            if os.path.exists(outdir):
-                self.outdir = outdir
-            else:
-                os.makedirs(outdir)
-                self.outdir = outdir
-                #raise IOError('Specified output directory does not exist')
-
-        #If we're on Pleiades, make sure striping is set up properly on output directory
-        #This now has check for lustre filesystem
-        iolib.setstripe(self.outdir, self.n_cpu)
 
         #Flag specifying whether user has specified output stack filename
         #Hack to prevent new stack_fn generation if files are missing or sorted
@@ -103,6 +94,14 @@ class DEMStack:
                 self.get_stack_fn()
             else:
                 raise ValueError('Must specify input filename list or existing stack filename')
+
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+            self.outdir = outdir
+            #raise IOError('Specified output directory does not exist')
+        #If we're on Pleiades, make sure striping is set up properly on output directory
+        #This now has check for lustre filesystem
+        iolib.setstripe(self.outdir, self.n_cpu)
 
         if os.path.exists(self.stack_fn):
             self.loadstack()
