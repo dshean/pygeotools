@@ -312,13 +312,14 @@ def circular_mask(size):
     return mask
 
 #This correctly handles nan, and is efficient for smaller arrays
-def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
+def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True, origmask=False):
     """General rolling filter (default operator is median filter)
 
     Can input any function f
 
     Efficient for smaller arrays, correclty handles NaN, fills gaps
     """
+    print("Applying rolling filter: %s with size %s" % (f.__name__, size))
     dem = malib.checkma(dem)
     #Convert to float32 so we can fill with nan
     dem = dem.astype(np.float32)
@@ -326,12 +327,15 @@ def rolling_fltr(dem, f=np.nanmedian, size=3, circular=True):
     #Force a step size of 1
     t = malib.sliding_window_padded(dem.filled(np.nan), (size, size), (1, 1))
     if circular:
-        mask = circular_mask(size)
-        t[:,mask] = np.nan
+        if size > 3:
+            mask = circular_mask(size)
+            t[:,mask] = np.nan
     t = t.reshape(newshp)
     out = f(t, axis=1).reshape(dem.shape)
     out = np.ma.fix_invalid(out).astype(dem.dtype)
     out.set_fill_value(dem.fill_value)
+    if origmask:
+        out = np.ma.array(out, mask=np.ma.getmaskarray(dem))
     return out
 
 def median_fltr_skimage(dem, radius=3, erode=1, origmask=False):
@@ -453,6 +457,27 @@ def abs_range_fltr_lowresDEM(dem_fn, refdem_fn, pad=30):
 
     print('Excluding values outside of padded ({0:0.1f} m) lowres DEM range: {1:0.1f} to {2:0.1f} m'.format(pad, *rangelim))
     out = range_fltr(dem, rangelim)
+    return out
+
+def erode_edge(dem, iterations=1):
+    """Erode pixels near nodata
+    """
+    import scipy.ndimage as ndimage 
+    print('Eroding pixels near nodata: %i iterations' % iterations)
+    mask = np.ma.getmaskarray(dem)
+    mask_dilate = ndimage.morphology.binary_dilation(mask, iterations=iterations)
+    out = np.ma.array(dem, mask=mask_dilate)
+    return out
+
+def remove_islands(dem, iterations=1):
+    """Remove isolated pixels
+    """
+    import scipy.ndimage as ndimage 
+    print('Removing isolated pixels: %i iterations' % iterations)
+    mask = np.ma.getmaskarray(dem)
+    mask_dilate = ndimage.morphology.binary_dilation(mask, iterations=iterations)
+    mask_dilate_erode = ~(ndimage.morphology.binary_dilation(~mask_dilate, iterations=iterations))
+    out = np.ma.array(dem, mask=mask_dilate_erode)
     return out
 
 def butter_low(dt_list, val, lowpass=1.0):
