@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/73121780.svg)](https://zenodo.org/badge/latestdoi/73121780)
+
 # pygeotools
 Libraries and command line tools for geospatial data processing and analysis
 
