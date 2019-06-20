@@ -2356,8 +2356,8 @@ def get_HAE(lon, lat):
     idx = np.isnan(out)
     #If we have any valid values, remove geoid offset
     if np.any(~idx):
-        offset = get_GeoidOffset_np(lon[idx], lat[idx])
-        out[idx] += offset
+        offset = get_GeoidOffset_np(lon[~idx], lat[~idx])
+        out[~idx] += offset
     return out 
 
 def test_elev_api(lon, lat):
