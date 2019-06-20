@@ -1062,6 +1062,7 @@ def sample(ds, mX, mY, xy_srs=None, bn=1, pad=0, min_samp_perc=50, circ=False, c
     #Create circular mask to simulate spot
     #This only makes sense for for xwin > 3 
     if circ:
+        from pygeotools.lib import filtlib
         circ_mask = filtlib.circular_mask(xwin)
         min_samp = int(np.ceil((min_samp_perc/100.)*circ_mask.nonzero()[0].size))
 
