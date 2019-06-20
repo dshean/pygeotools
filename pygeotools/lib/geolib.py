@@ -8,6 +8,7 @@ Geospatial functions for rasters, vectors.
 
 import sys
 import os
+import requests
 
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -2272,3 +2273,93 @@ def LE90(z_offset):
     c95 = 1.9600
     c90 = 1.6449
     return c90 * RMSE_z
+
+#Get approximate elevation MSL from USGS API using 10-m NED
+#https://nationalmap.gov/epqs/
+def get_NED(lon, lat):
+    url = 'https://nationalmap.gov/epqs/pqs.php?x=%.8f&y=%.8f&units=Meters&output=json' % (lon, lat)
+    r = requests.get(url)
+    out = np.nan 
+    ned_ndv = -1000000
+    if r.status_code == 200:
+        out = r.json()['USGS_Elevation_Point_Query_Service']['Elevation_Query']['Elevation']
+        out = float(out)
+        if out == ned_ndv:
+            out = np.nan 
+        else:
+            print("USGS elevation MSL: %0.2f" % out)
+    return out
+
+#USGS API can only handle one point at a time
+get_NED_np = np.vectorize(get_NED)
+
+#Get approximate elevation MSL from Open Elevation API (global)
+#Note that this can periodically fail, likely throttled - need more robust request
+#ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+#Can do multiple points at once:
+#https://github.com/Jorl17/open-elevation/blob/master/docs/api.md
+def get_OpenElevation(lon, lat):
+    import time
+    if isinstance(lon, (list, tuple, np.ndarray)):
+        #https://api.open-elevation.com/api/v1/lookup\?locations\=10,10\|20,20\|41.161758,-8.583933
+        locstr = '|'.join(['%0.8f,%0.8f' % i for i in zip(lat, lon)])
+        url = 'https://api.open-elevation.com/api/v1/lookup?locations=%s' % locstr 
+        out = np.full_like(lon, np.nan)
+    else:
+        out = np.nan 
+        url = 'https://api.open-elevation.com/api/v1/lookup?locations=%0.8f,%0.8f' % (lat, lon)
+    print(url)
+    i = 0 
+    while(i < 5):
+        try:
+            r = requests.get(url)
+            if r.status_code == 200:
+                #out = float(r.json()['results'][0]['elevation'])
+                out = [float(i['elevation']) for i in r.json()['results']]
+                if len(out) == 1:
+                    out = out[0]
+                print("Open Elevation MSL: ", out)
+                break
+        except:
+            time.sleep(3)
+            i += 1
+    return out
+
+#Get geoid offset from NGS
+#https://www.ngs.noaa.gov/web_services/geoid.shtml
+def get_GeoidOffset(lon, lat):
+    #Can specify model, 13 = GEOID12B
+    url = 'https://geodesy.noaa.gov/api/geoid/ght?lat=%0.8f&lon=%0.8f' % (lat, lon)
+    r = requests.get(url)
+    out = np.nan 
+    if r.status_code == 200:
+        out = float(r.json()['geoidHeight'])
+        print("NGS geoid offset: %0.2f" % out)
+    return out
+
+#NGS geoid can only handle one point at a time
+get_GeoidOffset_np = np.vectorize(get_GeoidOffset)
+
+#Get elevation (height above mean sea level - default for NED and Open Elevation)
+def get_MSL(lon, lat):
+    out = get_NED_np(lon, lat)
+    #Check for missing elevations 
+    idx = np.isnan(out)
+    if np.any(idx):
+        out[idx] = get_OpenElevation(lon[idx], lat[idx])
+    return out 
+
+#Get elevation (height above WGS84 ellipsoid)
+def get_HAE(lon, lat):
+    out = get_MSL(lon, lat) 
+    idx = np.isnan(out)
+    #If we have any valid values, remove geoid offset
+    if np.any(~idx):
+        offset = get_GeoidOffset_np(lon[idx], lat[idx])
+        out[idx] += offset
+    return out 
+
+def test_elev_api(lon, lat):
+    lat = np.random.uniform(-90,90,10)
+    lon = np.random.uniform(-180,180,10)
+    return get_MSL(lon,lat)
