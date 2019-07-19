@@ -36,7 +36,7 @@ gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
 #import resource
 #resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None, verbose=True):
+def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None, options=[], verbose=True):
     """Warp an input dataset with predetermined arguments specifying output res/extent/srs
 
     This is the function that actually calls gdal.ReprojectImage
@@ -59,6 +59,9 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         Output filename (for disk warp)
     dst_ndv : float
         Desired output NoData Value
+    options : list 
+        GDAL creation options for specified driver
+        e.g., ['COMPRESS=LZW', 'TILED=YES', 'BIGTIFF=IF_SAFER']
 
     Returns
     -------
@@ -128,7 +131,8 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     src_nl = src_ds.RasterYSize
     src_ns = src_ds.RasterXSize
 
-    dst_ds = driver.Create(dst_fn, dst_ns, dst_nl, src_ds.RasterCount, src_dt) 
+    #Note: for diskwarp, want to write out with LZW, TILED
+    dst_ds = driver.Create(dst_fn, dst_ns, dst_nl, src_ds.RasterCount, src_dt, options=options) 
 
     dst_ds.SetProjection(t_srs.ExportToWkt())
     #Might be an issue to use src_gt rotation terms here with arbitrary extent/res
@@ -224,7 +228,7 @@ def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, 
     if outdir is not None:
         dst_fn = os.path.join(outdir, os.path.basename(dst_fn))  
     driver = iolib.gtif_drv
-    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn, dst_ndv=dst_ndv, verbose=verbose)
+    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn, dst_ndv=dst_ndv, verbose=verbose, options=iolib.gdal_opt)
     #Write out
     dst_ds = None
     #Now reopen ds from disk
@@ -281,8 +285,9 @@ def parse_srs(t_srs, src_ds_list=None):
             t_srs = geolib.get_ds_srs(src_ds_list[0])
         elif t_srs == 'last' and src_ds_list is not None:
             t_srs = geolib.get_ds_srs(src_ds_list[-1])
-        #elif t_srs == 'source':
-        #    t_srs = None 
+        elif t_srs == 'source' and src_ds_list is not None:
+            #Assume ds to be warped is first in ds_list
+            t_srs = geolib.get_ds_srs(src_ds_list[0])
         elif isinstance(t_srs, osr.SpatialReference): 
             pass
         elif isinstance(t_srs, gdal.Dataset):
