@@ -20,7 +20,7 @@ def main(argv=None):
     #Input is a filename
     if len(sys.argv[1:]) == 1:
         fn = sys.argv[1]
-        ext = os.path.splitext(fn)[1]
+        ext = os.path.splitext(fn)[1].lower()
         #Accept DigitalGlobe image metadata in xml
         if ext == '.xml':
             from dgtools.lib import dglib
