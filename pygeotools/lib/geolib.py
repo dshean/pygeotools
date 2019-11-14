@@ -799,8 +799,7 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
     """Clip an input raster by input polygon shapefile for given extent
 
     """
-    from pygeotools.lib import iolib
-    from pygeotools.lib import warplib
+    from pygeotools.lib import iolib, warplib
 
     r_ds = iolib.fn_getds(r_fn)
     r_srs = get_ds_srs(r_ds)
@@ -2364,3 +2363,32 @@ def test_elev_api(lon, lat):
     lat = np.random.uniform(-90,90,10)
     lon = np.random.uniform(-180,180,10)
     return get_MSL(lon,lat)
+
+#Create a raster heatmap from polygon features (geopandas GeoDataFrame)
+#res is output grid cell size in meters
+def heatmap(gdf, res=1000, out_fn='heatmap.tif', return_ma=False):
+    from pygeotools.lib import iolib
+    import subprocess
+    gpkg_fn = os.path.splitext(out_fn)[0] + '.gpkg' 
+    if not os.path.exists(out_fn):
+	#Could probably do this in MEM, or maybe gdal_rasterize is now exposed in API
+        gdf.to_file(gpkg_fn, driver='GPKG')
+        cmd = ['gdal_rasterize', '-burn', '1', '-tr', str(res), str(res), '-ot', 'UInt32', '-a_nodata', '0', '-add', gpkg_fn, out_fn]
+        #Add standard raster output options
+        cmd.extend(iolib.gdal_opt_co)
+        print(cmd)
+        subprocess.call(cmd)
+    if return_ma:
+        #with rio.Open(out_fn) as src:
+        #    out = src.read()
+        out = iolib.fn_getma(out_fn)
+    else:
+        out = out_fn
+    return out
+
+#Create a raster heatmap from OGR-readable file (e.g., shp, gpkg) 
+def heatmap_fn(fn, res=1000, return_ma=False):
+    import geopandas as gpd
+    gdf = gpd.read_file(fn)
+    out_fn = os.path.splitext(fn)[0]+'_heatmap.tif'
+    return heatmap(gdf, res=res, out_fn=out_fn, return_ma=return_ma)
