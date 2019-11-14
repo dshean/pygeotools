@@ -406,7 +406,10 @@ class DEMStack:
 
     def loadstack(self):
         print("Loading stack from: %s" % self.stack_fn)
-        data = np.load(self.stack_fn, encoding='latin1')
+        #data = np.load(self.stack_fn, encoding='latin1')
+        data = np.load(self.stack_fn)
+        #This was needed to load bytestrings written with Python2, wip
+        #self.fn_list = [i.decode("utf-8") for i in data['fn_list']]
         #self.fn_list = list([i.decode("utf-8") for i in data['fn_list']])
         self.fn_list = data['fn_list']
         #Load flags originally used for stack creation
@@ -437,6 +440,8 @@ class DEMStack:
         self.ma_stack = np.ma.fix_invalid(data['ma_stack_full']).astype(self.dtype)
         #Note: the str is an intermediate fix - all new stacks should have str written
         self.proj = str(data['proj'])
+        #This is wip for issues loading stacks generated with Python2 vs Python3
+        #self.proj = data['proj'].decode("utf-8")
         #If we don't have gt, we're in trouble - can't recompute res/extent
         if 'gt' in data:
             self.gt = data['gt']
