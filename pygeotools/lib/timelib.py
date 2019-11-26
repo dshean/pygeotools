@@ -132,7 +132,7 @@ def fn_getdatetime_list(fn):
         dstr = re.findall(r'[0-3][0-9][a-z][a-z][a-z][0-9][0-9]', fn)
         #This is USGS archive format
         if dstr:
-            out = [datetime.strptime(s, '%d%b%y') for s in dstr][0]
+            out = [datetime.strptime(s, '%d%b%y') for s in dstr]
             dstr = None
     if dstr:
         #This is a hack to remove peripheral underscores and dashes
