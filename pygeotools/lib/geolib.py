@@ -747,7 +747,11 @@ def lyr_proj(lyr, t_srs, preserve_fields=True):
 def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     """Rasterize input shapefile to match existing raster Dataset (or specified res/extent/t_srs)
     """
-    shp_ds = ogr.Open(shp_fn)
+    if isinstance(shp_fn, ogr.DataSource):
+        shp_ds = shp_fn
+    else:
+        shp_ds = ogr.Open(shp_fn)
+        
     lyr = shp_ds.GetLayer()
     #This returns xmin, ymin, xmax, ymax
     shp_extent = lyr_extent(lyr)
