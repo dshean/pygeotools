@@ -515,6 +515,7 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
             out_ds_list.append(ds)
         else:
             dst_ds = warptype(ds, res, extent, t_srs, r, outdir, dst_ndv=dst_ndv, verbose=verbose)
+            dst_ds.SetDescription(ds.GetDescription())
             out_ds_list.append(dst_ds)
 
     return out_ds_list
