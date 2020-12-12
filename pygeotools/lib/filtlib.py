@@ -180,13 +180,13 @@ def gauss_fltr_pyramid(dem, size=None, full=False, origmask=False):
     dem = malib.checkma(dem)
     levels = int(np.floor(np.log2(size)))
     #print levels
-    dim = np.floor(np.array(dem.shape)/float(2**levels) + 1)*(2**levels)
+    dim = (np.floor(np.array(dem.shape)/float(2**levels) + 1)*(2**levels)).astype(int)
     #print dem.shape
     #print dim
     #Can do something with np.pad here
     #np.pad(a_fp.filled(), 1, mode='constant', constant_values=(a_fp.fill_value,))
     dem2 = np.full(dim, dem.fill_value)
-    offset = (dim - np.array(dem.shape))/2.0
+    offset = np.floor((dim - np.array(dem.shape))/2.0).astype(int)
     #print offset
     #dem2[0:dem.shape[0],0:dem.shape[1]] = dem.data 
     dem2[offset[0]:dem.shape[0]+offset[0],offset[1]:dem.shape[1]+offset[1]] = dem.data 
@@ -386,7 +386,7 @@ def uniform_fltr(dem, fsize=7):
     """
     print("Applying uniform filter with size %s" % fsize)
     #Note, ndimage doesn't properly handle ma - convert to nan
-    from scipy.ndimage.filters import unifiform_filter
+    from scipy.ndimage.filters import uniform_filter
     dem_filt_med = uniform_filter(dem.filled(np.nan), fsize)
     #Now mask all nans
     out = np.ma.fix_invalid(dem_filt_med, copy=False, fill_value=dem.fill_value)
