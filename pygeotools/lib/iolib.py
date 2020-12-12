@@ -190,7 +190,7 @@ def get_sub_dim(src_ds, scale=None, maxdim=1024):
         scale_nl = nl/maxdim
         scale = max(scale_ns, scale_nl)
     #Need to check to make sure scale is positive real 
-    if scale > 1:
+    elif scale > 1:
         ns = int(round(ns/scale))
         nl = int(round(nl/scale))
     return ns, nl, scale
