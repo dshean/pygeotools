@@ -23,6 +23,8 @@ gdal.UseExceptions()
 wgs_srs = osr.SpatialReference()
 wgs_srs.SetWellKnownGeogCS('WGS84')
 wgs_proj = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
+#GDAL3 hack
+#wgs_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
 #Define ECEF srs
 ecef_srs=osr.SpatialReference()
@@ -123,7 +125,7 @@ def cT_helper(x, y, z, in_srs, out_srs):
     z = np.atleast_1d(z)
     if x.shape != y.shape:
         sys.exit("Inconsistent number of x and y points")
-    valid_idx = Ellipsis 
+    valid_idx = None
     #Handle case where we have x array, y array, but a constant z (e.g., 0.0)
     if z.shape != x.shape:
         #If a constant elevation is provided
@@ -142,23 +144,31 @@ def cT_helper(x, y, z, in_srs, out_srs):
         z = np.ma.array(z)
         from pygeotools.lib import malib
         valid_idx = ~(malib.common_mask([x,y,z]))
-    #Prepare (x,y,z) tuples
-    xyz = np.array([x[valid_idx], y[valid_idx], z[valid_idx]]).T
+        #Prepare (x,y,z) tuples
+        xyz = np.array([x[valid_idx], y[valid_idx], z[valid_idx]]).T
+    else:
+        xyz = np.array([x.ravel(), y.ravel(), z.ravel()]).T
     #Define coordinate transformation
     cT = osr.CoordinateTransformation(in_srs, out_srs)
     #Loop through each point
     xyz2 = np.array([cT.TransformPoint(xi,yi,zi) for (xi,yi,zi) in xyz]).T
-    #Fill in the masked array
+    #If single input coordinate
     if xyz2.shape[1] == 1:
         xyz2 = xyz2.squeeze()
         x2, y2, z2 = xyz2[0], xyz2[1], xyz2[2] 
     else:
-        x2 = np.zeros_like(x)
-        y2 = np.zeros_like(y)
-        z2 = np.zeros_like(z)
-        x2[valid_idx] = xyz2[0]
-        y2[valid_idx] = xyz2[1]
-        z2[valid_idx] = xyz2[2]
+        #Fill in masked array
+        if valid_idx is not None:
+            x2 = np.zeros_like(x)
+            y2 = np.zeros_like(y)
+            z2 = np.zeros_like(z)
+            x2[valid_idx] = xyz2[0]
+            y2[valid_idx] = xyz2[1]
+            z2[valid_idx] = xyz2[2]
+        else:
+            x2 = xyz2[0].reshape(x.shape)
+            y2 = xyz2[1].reshape(y.shape)
+            z2 = xyz2[2].reshape(z.shape)
     return x2, y2, z2
 
 def ll2ecef(lon, lat, z=0.0):
