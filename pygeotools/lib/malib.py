@@ -1522,9 +1522,8 @@ def mad(a, axis=None, c=1.4826, return_med=False):
             out = fast_median(np.fabs(a - med)) * c
         else:
             med = np.ma.median(a, axis=axis)
-            #This is necessary for broadcasting
-            med = np.expand_dims(med, axis=axis)
-            out = np.ma.median(np.ma.fabs(a - med), axis=axis) * c
+            #The expand_dims is necessary for broadcasting
+            out = np.ma.median(np.ma.fabs(a - np.expand_dims(med, axis=axis)), axis=axis) * c
     else:
         out = np.ma.masked
     if return_med:
