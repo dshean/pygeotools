@@ -20,9 +20,11 @@ from pygeotools.lib import warplib
 def getparser():
     parser = argparse.ArgumentParser(description="Apply existing mask to input raster")
     #Should add support for similar arguments as in warplib - arbitrary extent, res, etc
-    parser.add_argument('-extent', type=str, default='raster', choices=['raster','mask','intersection','union'], \
-                        help='Desired output extent')
+    parser.add_argument('-extent', type=str, default='raster', \
+            choices=['raster','mask','intersection','union'], help='Desired output extent')
     parser.add_argument('-invert', action='store_true', help='Invert input mask')
+    parser.add_argument('-mask_val', type=float, default=None, \
+            help='If input mask_fn is classified raster, specify value to use as mask')
     parser.add_argument('-out_fn', type=str, default=None, help='Output filename')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('mask_fn', type=str, help='Input mask filename (can be existing raster with ndv, or binary mask)')
@@ -52,15 +54,24 @@ def main():
         #t_srs = geolib.get_ds_srs(src_ds_list[0])
         extent = warplib.parse_extent(extent, src_ds_list, src_fn)
 
+    #Set resampling algorithm appropriately
+    r='cubic'
+    mask_val=args.mask_val
+    if mask_val is not None:
+        r='near'
+
     print("Warping mask_fn")
-    mask_ds = warplib.memwarp_multi_fn([mask_fn,], res=src_fn, extent=extent, t_srs=src_fn)[0]
+    mask_ds = warplib.memwarp_multi_fn([mask_fn,], res=src_fn, extent=extent, t_srs=src_fn, r=r)[0]
 
     print("Loading mask array")
     mask_ma_full = iolib.ds_getma(mask_ds)
     mask_ds = None
 
     print("Extracting mask")
-    if mask_ma_full.std() != 0:
+    if mask_val is not None:
+        #Use specified value
+        mask = ~((mask_ma_full == mask_val).data)
+    elif mask_ma_full.std() != 0:
         #Input mask filename is a raster, or other masked array
         #Just need to extract mask
         mask = np.ma.getmaskarray(mask_ma_full)
