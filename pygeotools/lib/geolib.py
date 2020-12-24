@@ -979,6 +979,9 @@ def get_outline(ds, t_srs=None, scale=1.0, simplify=False, convex=False):
         #Create wkt string
         geom_wkt = 'POLYGON(({0}))'.format(', '.join(['{0} {1}'.format(*a) for a in zip(mx,my)]))
         geom = ogr.CreateGeometryFromWkt(geom_wkt)
+        if int(gdal.__version__.split('.')[0]) >= 3:
+            if ds_srs.IsSame(wgs_srs):
+                ds_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         if not ds_srs.IsSame(t_srs):
             ct = osr.CoordinateTransformation(ds_srs, t_srs)
             geom.Transform(ct)
@@ -1404,6 +1407,9 @@ def ds_geom(ds, t_srs=None):
     mx, my = pixelToMap(x, y, gt)
     geom_wkt = 'POLYGON(({0}))'.format(', '.join(['{0} {1}'.format(*a) for a in zip(mx,my)]))
     geom = ogr.CreateGeometryFromWkt(geom_wkt)
+    if int(gdal.__version__.split('.')[0]) >= 3:
+        if ds_srs.IsSame(wgs_srs):
+            ds_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     geom.AssignSpatialReference(ds_srs)
     if not ds_srs.IsSame(t_srs):
         geom_transform(geom, t_srs)
@@ -2172,17 +2178,23 @@ site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, r
 
 #bbox should be [minlon, maxlon, minlat, maxlat]
 #bbox should be [min_x, max_x, min_y, max_y]
-def bbox2geom(bbox, t_srs=None):
+def bbox2geom(bbox, a_srs=wgs_srs, t_srs=None):
     #Check bbox
     #bbox = numpy.array([-180, 180, 60, 90])
     x = [bbox[0], bbox[0], bbox[1], bbox[1], bbox[0]]
     y = [bbox[2], bbox[3], bbox[3], bbox[2], bbox[2]]
     geom_wkt = 'POLYGON(({0}))'.format(', '.join(['{0} {1}'.format(*a) for a in zip(x,y)]))
     geom = ogr.CreateGeometryFromWkt(geom_wkt)
-    if t_srs is not None and not wgs_srs.IsSame(t_srs):
-        ct = osr.CoordinateTransformation(t_srs, wgs_srs)
-        geom.Transform(ct)
-        geom.AssignSpatialReference(t_srs)
+    if a_srs is not None:
+        if int(gdal.__version__.split('.')[0]) >= 3:
+            if a_srs.IsSame(wgs_srs):
+                a_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        geom.AssignSpatialReference(a_srs)
+    if t_srs is not None:
+        if not a_srs.IsSame(t_srs):
+            ct = osr.CoordinateTransformation(a_srs, t_srs)
+            geom.Transform(ct)
+            geom.AssignSpatialReference(t_srs)
     return geom
 
 def xy2geom(x, y, t_srs=None):
