@@ -52,6 +52,11 @@ def main():
 
     #Load masked array
     bma = iolib.ds_getma(ds)
+
+    #Handle cases with input ndv of nan
+    #if old_ndv == np.nan:
+    bma = np.ma.fix_invalid(bma)
+
     #Set new fill value
     bma.set_fill_value(new_ndv)
     #Fill ma with new value and write out
