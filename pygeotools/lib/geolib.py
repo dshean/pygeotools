@@ -1930,25 +1930,30 @@ def map_interp(bma, gt, stride=1, full_array=True):
         zia[pyi, pxi] = zi
     return zia
 
-def get_xy_ma(bma, gt, stride=1, origmask=True, newmask=None):
+def get_xy_ma(bma, gt=None, stride=1, origmask=True, newmask=None):
     """Return arrays of x and y map coordinates for input array and geotransform
     """
-    pX = np.arange(0, bma.shape[1], stride)
-    pY = np.arange(0, bma.shape[0], stride)
-    psamp = np.meshgrid(pX, pY)
+    x = np.arange(0, bma.shape[1], stride)
+    y = np.arange(0, bma.shape[0], stride)
+    psamp = np.meshgrid(x, y)
+
     #if origmask:
     #    psamp = np.ma.array(psamp, mask=np.ma.getmaskarray(bma), fill_value=0)
-    mX, mY = pixelToMap(psamp[0], psamp[1], gt)
+    if gt is not None:
+        psamp[0], psamp[1] = pixelToMap(psamp[0], psamp[1], gt)
+
     mask = None
     if origmask:
         mask = np.ma.getmaskarray(bma)[::stride]
     if newmask is not None:
         mask = newmask[::stride]
-    mX = np.ma.array(mX, mask=mask, fill_value=0)
-    mY = np.ma.array(mY, mask=mask, fill_value=0)
-    return mX, mY
 
-def get_xy_1D(ds, stride=1, getval=False):
+    if mask is not None:
+        psamp[0] = np.ma.array(psamp[0], mask=mask, fill_value=0)
+        psamp[1] = np.ma.array(psamp[1], mask=mask, fill_value=0)
+    return psamp[0], psamp[1] 
+
+def get_xy_1D(ds, stride=1):
     """Return 1D arrays of x and y map coordinates for input GDAL Dataset 
     """
     gt = ds.GetGeoTransform()
@@ -1959,7 +1964,7 @@ def get_xy_1D(ds, stride=1, getval=False):
     dummy, mY = pixelToMap(pX[0], pY, gt)
     return mX, mY
 
-def get_xy_grids(ds, stride=1, getval=False):
+def get_xy_grids(ds, stride=1, mapcoord=True):
     """Return 2D arrays of x and y map coordinates for input GDAL Dataset 
     """
     gt = ds.GetGeoTransform()
@@ -1967,8 +1972,9 @@ def get_xy_grids(ds, stride=1, getval=False):
     pX = np.arange(0, ds.RasterXSize, stride)
     pY = np.arange(0, ds.RasterYSize, stride)
     psamp = np.meshgrid(pX, pY)
-    mX, mY = pixelToMap(psamp[0], psamp[1], gt)
-    return mX, mY
+    if mapcoord: 
+        psamp[0], psamp[1] = pixelToMap(psamp[0], psamp[1], gt)
+    return psamp[0], psamp[1] 
 
 def fitPlaneSVD(XYZ):
     """Fit a plane to input point data using SVD
