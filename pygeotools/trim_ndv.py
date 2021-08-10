@@ -4,6 +4,7 @@
 #dshean@gmail.com
 
 #This script will trim empty rows and columns (with nodata value) from an input raster
+#Updated approach with rasterio: https://rasterio.readthedocs.io/en/latest/topics/windowed-rw.html#data-windows
 
 import sys
 import os
