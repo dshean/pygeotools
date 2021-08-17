@@ -332,7 +332,8 @@ def scale_ps(lat):
     t = np.tan(np.pi/4 - lat/2)/((1. - e*slat)/(1. + e*slat))**(e/2)
     k = m70_t70*t/m
 
-    scale=(1./k)
+    #Scale factor for area is 1/k**2, for distance 1/k
+    scale=(1./k**2)
     return scale
 
 def wraplon(lon):
