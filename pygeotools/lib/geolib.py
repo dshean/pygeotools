@@ -807,7 +807,7 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     b.SetNoDataValue(ndv)
     gdal.RasterizeLayer(m_ds, [1], outlyr, burn_values=[1])
     a = b.ReadAsArray()
-    a = ~(a.astype('Bool'))
+    a = ~(a.astype(bool))
     return a
 
 def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=False, verbose=False):
@@ -1628,7 +1628,7 @@ def lyr2mask(lyr, r_ds):
     #Rasterize with values of 1
     gdal.RasterizeLayer(m_ds, [1], lyr, burn_values=[1])
     a = b.ReadAsArray()
-    mask = a.astype('Bool')
+    mask = a.astype(bool)
     m_ds = None
     return ~mask
 
