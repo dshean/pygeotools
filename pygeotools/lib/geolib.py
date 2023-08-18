@@ -24,7 +24,8 @@ wgs_srs = osr.SpatialReference()
 wgs_srs.SetWellKnownGeogCS('WGS84')
 wgs_proj = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
 #GDAL3 hack
-#wgs_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+if int(gdal.__version__.split('.')[0]) >= 3:
+    wgs_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
 #Define ECEF srs
 ecef_srs=osr.SpatialReference()
