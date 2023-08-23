@@ -2117,6 +2117,15 @@ def getUTMzone(geom):
             zonenum = 37
     return str(zonenum)+zonehem
 
+#Return EPSG code for UTM zone
+def getUTMepsg(geom):
+    utmzone = getUTMzone(geom)
+    prefix = '326'
+    if utm[-1] == 'S':
+        prefix = '327'
+    epsg_code = prefix+utm[0:2]
+    return epsg_code 
+
 #Return UTM srs
 def getUTMsrs(geom):
     utmzone = getUTMzone(geom)
