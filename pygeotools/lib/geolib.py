@@ -2138,6 +2138,7 @@ def get_proj(geom, proj_list=None):
     """Determine best projection for input geometry
     """
     out_srs = None
+    """
     if proj_list is None:
         proj_list = gen_proj_list()
     #Go through user-defined projeciton list
@@ -2145,6 +2146,7 @@ def get_proj(geom, proj_list=None):
         if projbox.geom.Intersects(geom):
             out_srs = projbox.srs
             break
+    """
     #If geom doesn't fall in any of the user projection bbox, use UTM
     if out_srs is None:
         out_srs = getUTMsrs(geom)
@@ -2170,7 +2172,7 @@ def gen_proj_list():
     #Alaska
     #Note, this spans -180/180
     proj_list.append(ProjBox([-180, -130, 51.35, 71.35], 3338))
-    #proj_list.append(ProjBox([-130, 172.4, 51.35, 71.35], 3338))
+    ##proj_list.append(ProjBox([-130, 172.4, 51.35, 71.35], 3338))
     #Transantarctic Mountains
     proj_list.append(ProjBox([150, 175, -80, -70], 3294))
     #Greenland
