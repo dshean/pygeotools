@@ -103,7 +103,7 @@ class DEMStack:
 
         #If we're on Pleiades, make sure striping is set up properly on output directory
         #This now has check for lustre filesystem
-        iolib.setstripe(self.outdir, self.n_cpu)
+        #iolib.setstripe(self.outdir, self.n_cpu)
 
         if os.path.exists(self.stack_fn):
             self.loadstack()
