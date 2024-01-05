@@ -1526,6 +1526,7 @@ def mad(a, axis=None, c=1.4826, return_med=False):
             out = np.ma.median(np.ma.fabs(a - np.expand_dims(med, axis=axis)), axis=axis) * c
     else:
         out = np.ma.masked
+        med = np.ma.masked
     if return_med:
         out = (out, med)
     return out
