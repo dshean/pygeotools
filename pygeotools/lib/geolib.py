@@ -22,7 +22,6 @@ gdal.UseExceptions()
 #mpd = 111319.9
 wgs_srs = osr.SpatialReference()
 wgs_srs.SetWellKnownGeogCS('WGS84')
-wgs_proj = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
 #GDAL3 hack
 if int(gdal.__version__.split('.')[0]) >= 3:
     wgs_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -30,16 +29,6 @@ if int(gdal.__version__.split('.')[0]) >= 3:
 #Define ECEF srs
 ecef_srs=osr.SpatialReference()
 ecef_srs.ImportFromEPSG(4978)
-
-#Define ITRF2008 srs
-itrf_srs=osr.SpatialReference()
-itrf_srs.ImportFromEPSG(5332)
-
-#TOPEX ellipsoid
-tp_srs = osr.SpatialReference()
-#tp_proj = '+proj=latlong +a=6378136.300000 +rf=298.25700000 +no_defs'
-tp_proj = '+proj=latlong +a=6378136.300000 +b=6356751.600563 +towgs84=0,0,0,0,0,0,0 +no_defs'
-tp_srs.ImportFromProj4(tp_proj)
 
 #Vertical CS setup
 #See: http://lists.osgeo.org/pipermail/gdal-dev/2011-August/029856.html
@@ -57,63 +46,6 @@ tp_srs.ImportFromProj4(tp_proj)
 #wget http://download.osgeo.org/proj/vdatum/usa_geoid2012.zip
 #unzip usa_geoid2012.zip
 #rm usa_geoid2012.zip
-
-egm96_srs=osr.SpatialReference()
-egm96_srs.ImportFromProj4("+proj=longlat +datum=WGS84 +no_defs +geoidgrids=egm96_15.gtx")
-
-#Define EGM2008 srs
-egm08_srs=osr.SpatialReference()
-egm08_srs.ImportFromProj4("+proj=longlat +datum=WGS84 +no_defs +geoidgrids=egm08_25.gtx")
-
-#Define NAD83/NAVD88 srs for CONUS
-navd88_conus_srs=osr.SpatialReference()
-navd88_conus_srs.ImportFromProj4("+proj=longlat +datum=NAD83 +no_defs +geoidgrids=g2012a_conus.gtx")
-
-#Define NAD83/NAVD88 srs for Alaska
-navd88_alaska_srs=osr.SpatialReference()
-navd88_alaska_srs.ImportFromProj4("+proj=longlat +datum=NAD83 +no_defs +geoidgrids=g2012a_alaska.gtx")
-
-#Define N Polar Stereographic srs
-nps_srs=osr.SpatialReference()
-#Note: this doesn't stick!
-#nps_srs.ImportFromEPSG(3413)
-nps_proj = '+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs '
-nps_srs.ImportFromProj4(nps_proj)
-
-nps_egm08_srs=osr.SpatialReference()
-nps_egm08_srs.ImportFromProj4('+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +geoidgrids=egm08_25.gtx +no_defs')
-
-#Define N Polar Stereographic srs
-sps_srs=osr.SpatialReference()
-#Note: this doesn't stick!
-#sps_srs.ImportFromEPSG(3031)
-sps_proj = '+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs '
-sps_srs.ImportFromProj4(sps_proj)
-
-sps_egm08_srs=osr.SpatialReference()
-sps_egm08_srs.ImportFromProj4('+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +geoidgrids=egm08_25.gtx +no_defs')
-
-aea_grs80_srs=osr.SpatialReference()
-#aea_grs80_proj='+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs '
-aea_grs80_proj='+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs '
-aea_grs80_srs.ImportFromEPSG(3338)
-
-aea_navd88_srs=osr.SpatialReference()
-#aea_navd88_proj='+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs +geoidgrids=g2012a_alaska.gtx'
-aea_navd88_proj='+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs +towgs84=0,0,0,0,0,0,0 +geoidgrids=g2012a_conus.gtx,g2012a_alaska.gtx,g2012a_guam.gtx,g2012a_hawaii.gtx,g2012a_puertorico.gtx,g2012a_samoa.gtx +vunits=m +no_defs'
-aea_navd88_srs.ImportFromProj4(aea_navd88_proj)
-
-#HMA projection
-hma_aea_srs = osr.SpatialReference()
-#hma_aea_proj = '+proj=aea +lat_1=25 +lat_2=47 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
-hma_aea_proj = '+proj=aea +lat_1=25 +lat_2=47 +lat_0=36 +lon_0=85 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
-hma_aea_srs.ImportFromProj4(hma_aea_proj)
-
-#CONUS projection
-#CONUS bounds 36, 49, -105, -124
-conus_aea_srs = osr.SpatialReference()
-conus_aea_proj = '+proj=aea +lat_1=36 +lat_2=49 +lat_0=43 +lon_0=-115 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs '
-conus_aea_srs.ImportFromProj4(conus_aea_proj)
 
 #To do for transformations below:
 #Check input order of lon, lat
@@ -178,57 +110,9 @@ def ll2ecef(lon, lat, z=0.0):
 def ecef2ll(x, y, z):
     return cT_helper(x, y, z, ecef_srs, wgs_srs)
 
-def ll2itrf(lon, lat, z=0.0):
-    return cT_helper(lon, lat, z, wgs_srs, itrf_srs)
-
-def itrf2ll(x, y, z):
-    return cT_helper(x, y, z, itrf_srs, wgs_srs)
-
-def tp2wgs(x, y, z):
-    return cT_helper(x, y, z, tp_srs, wgs_srs)
-
-def wgs2tp(x, y, z):
-    return cT_helper(x, y, z, wgs_srs, tp_srs)
-
-#Note: the lat/lon values returned here might be susceptible to rounding errors 
-#Or are these true offsets due to dz?
-#120.0 -> 119.99999999999999
-#def geoid2ell(lon, lat, z=0.0, geoid=egm96_srs):
-def geoid2ell(lon, lat, z=0.0, geoid=egm08_srs):
-    llz = cT_helper(lon, lat, z, geoid, wgs_srs)
-    return lon, lat, llz[2]
-
-#def ell2geoid(lon, lat, z=0.0, geoid=egm96_srs):
-def ell2geoid(lon, lat, z=0.0, geoid=egm08_srs):
-    llz = cT_helper(lon, lat, z, wgs_srs, geoid)
-    return lon, lat, llz[2]
-
-def ll2nps(lon, lat, z=0.0):
-    #Should throw error here
-    if np.any(lat < 0.0):
-        print("Warning: latitude out of range for output projection")
-    return cT_helper(lon, lat, z, wgs_srs, nps_srs)
-
-def nps2ll(x, y, z=0.0):
-    return cT_helper(x, y, z, nps_srs, wgs_srs)
-
-def ll2sps(lon, lat, z=0.0):
-    if np.any(lat > 0.0):
-        print("Warning: latitude out of range for output projection")
-    return cT_helper(lon, lat, z, wgs_srs, sps_srs)
-
-def sps2ll(x, y, z=0.0):
-    return cT_helper(x, y, z, sps_srs, wgs_srs)
-
 def scale_ps_ds(ds):
     clat, clon = get_center(ds)
     return scale_ps(clat)
-
-def nps2geoid(x, y, z=0.0, geoid=nps_egm08_srs):
-    return cT_helper(x, y, z, nps_srs, geoid)
-
-def sps2geoid(x, y, z=0.0, geoid=sps_egm08_srs):
-    return cT_helper(x, y, z, sps_srs, geoid)
 
 def localtmerc_ds(ds):
     lon, lat = get_center(ds, t_srs=wgs_srs) 
@@ -271,14 +155,6 @@ def ll2local(lon, lat, z=0, local_srs=None):
         latm = lat.mean()
         local_srs = localortho(lonm, latm)
     return cT_helper(lon, lat, z, wgs_srs, local_srs)
-
-def sps2local(x, y, z=0, local_srs=None):
-    if local_srs is None:
-        xm = x.mean()
-        ym = y.mean()
-        lon, lat, z = sps2ll(xm, ym, z)
-        local_srs = localortho(lon, lat)
-    return cT_helper(x, y, z, sps_srs, local_srs)
 
 def lldist(pt1, pt2):
     (lon1, lat1) = pt1 
@@ -1288,6 +1164,9 @@ def get_ds_srs(ds):
     """
     ds_srs = osr.SpatialReference()
     ds_srs.ImportFromWkt(ds.GetProjectionRef())
+    #Need to create a copy that persists, rather than pointer to original ds srs
+    #import copy
+    #ds_srs = copy.deepcopy(ds.GetSpatialRef())
     return ds_srs
 
 def srs_check(ds):
@@ -1814,60 +1693,6 @@ def bilinear(px, py, band_array, gt):
             band_array[iy2,ix1]*dx2*dy1/div +
             band_array[iy2,ix2]*dx1*dy1/div)
 
-#Jak values over fjord are ~30, offset is -29.99
-def get_geoid_offset(ds, geoid_srs=egm08_srs):
-    """Return offset for center of ds
-    
-    Offset is added to input (presumably WGS84 HAE) to get to geoid
-    
-    Note: requires vertical offset grids in proj share dir - see earlier note
-    """
-    ds_srs = get_ds_srs(ds)
-    c = get_center(ds)
-    x, y, z = cT_helper(c[0], c[1], 0.0, ds_srs, geoid_srs)
-    return z
-
-def get_geoid_offset_ll(lon, lat, geoid_srs=egm08_srs):
-    x, y, z = cT_helper(lon, lat, 0.0, wgs_srs, geoid_srs)
-    return z
-
-#Note: the existing egm96-5 dataset has problematic extent
-#warplib writes out correct res/extent, but egm96 is empty
-#Eventually accept geoma
-def wgs84_to_egm96(dem_ds, geoid_dir=None):
-    from pygeotools.lib import warplib
-
-    #Check input dem_ds - make sure WGS84
-
-    geoid_dir = os.getenv('ASP_DATA')
-    if geoid_dir is None:
-        print("No geoid directory available")
-        print("Set ASP_DATA or specify")
-    
-    egm96_fn = geoid_dir+'/geoids-1.1/egm96-5.tif' 
-    try:
-        open(egm96_fn)
-    except IOError:
-        sys.exit("Unable to find "+egm96_fn)
-    egm96_ds = gdal.Open(egm96_fn)
-
-    #Warp egm96 to match the input ma
-    ds_list = warplib.memwarp_multi([dem_ds, egm96_ds], res='first', extent='first', t_srs='first') 
-
-    #Try two-step with extent/res in wgs84
-    #ds_list = warplib.memwarp_multi([dem_ds, egm96_ds], res='first', extent='intersection', t_srs='last') 
-    #ds_list = warplib.memwarp_multi([dem_ds, ds_list[1]], res='first', extent='first', t_srs='first')
-
-    print("Extracting ma from dem and egm96 ds")
-    from pygeotools.lib import iolib
-    dem = iolib.ds_getma(ds_list[0])
-    egm96 = iolib.ds_getma(ds_list[1])
-
-    print("Removing offset")
-    dem_egm96 = dem - egm96
-   
-    return dem_egm96
-
 #Run ASP dem_geoid adjustment utility
 #Note: this is multithreaded
 def dem_geoid(dem_fn):
@@ -2194,14 +2019,6 @@ class Site:
         self.refdem_fn = refdem_fn
 
 site_dict = {}
-#NED 1/3 arcsec (10 m)
-ned13_dem_fn = '/nobackup/deshean/rpcdem/ned13/ned13_tiles_glac24k_115kmbuff.vrt'
-#NED 1 arcsec (30 m)
-ned1_dem_fn = '/nobackup/deshean/rpcdem/ned1/ned1_tiles_glac24k_115kmbuff.vrt'
-site_dict['conus'] = Site(name='conus', extent=(-125, -104, 31, 50), srs=conus_aea_srs, refdem_fn=ned1_dem_fn)
-#SRTM-GL1 1 arcsec (30 m)
-srtm1_fn = '/nobackup/deshean/rpcdem/hma/srtm1/hma_srtm_gl1.vrt'
-site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, refdem_fn=srtm1_fn)
 
 #bbox should be [minlon, maxlon, minlat, maxlat]
 #bbox should be [min_x, max_x, min_y, max_y]

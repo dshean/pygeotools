@@ -9,7 +9,7 @@ import os
 import subprocess
 
 import numpy as np
-from osgeo import gdal, gdal_array, osr
+from osgeo import gdal, gdal_array
 
 #Define drivers
 mem_drv = gdal.GetDriverByName('MEM')
@@ -300,8 +300,6 @@ def writeGTiff(a, dst_fn, src_ds=None, bnum=1, ndv=None, gt=None, proj=None, cre
         src_gt = src_ds.GetGeoTransform()
         #This is WKT
         src_proj = src_ds.GetProjection()
-        #src_srs = osr.SpatialReference()  
-        #src_srs.ImportFromWkt(src_ds.GetProjectionRef())
 
     #Probably a cleaner way to handle this
     if gt is None:
