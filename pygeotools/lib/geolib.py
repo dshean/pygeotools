@@ -1163,7 +1163,8 @@ def get_ds_srs(ds):
     """Get srs object for GDAL Datset
     """
     ds_srs = osr.SpatialReference()
-    ds_srs.ImportFromWkt(ds.GetProjectionRef())
+    if ds.GetProjectionRef():
+        ds_srs.ImportFromWkt(ds.GetProjectionRef())
     #Need to create a copy that persists, rather than pointer to original ds srs
     #import copy
     #ds_srs = copy.deepcopy(ds.GetSpatialRef())
