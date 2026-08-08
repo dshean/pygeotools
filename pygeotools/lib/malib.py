@@ -1679,7 +1679,7 @@ def rmse(a):
     return rmse
 
 #Check that input is a masked array
-def checkma(a, fix=False):
+def checkma(a, fix=True):
     #isinstance(a, np.ma.MaskedArray)
     if np.ma.is_masked(a):
         out=a
