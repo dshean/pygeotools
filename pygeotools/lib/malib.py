@@ -1690,8 +1690,8 @@ def checkma(a, fix=True):
     if fix:
         #Note: this fails for datetime arrays! Treated as objects.
         #Note: datetime ma returns '?' for fill value
-        from datetime import datetime
-        if isinstance(a[0], datetime):
+        #Check dtype, not a[0], which raises IndexError for empty and 0-d input
+        if out.dtype.kind in 'OMm':
             print("Input array appears to be datetime.  Skipping fix")
         else:
             out=np.ma.fix_invalid(out, copy=False)
