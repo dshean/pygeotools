@@ -1602,20 +1602,29 @@ def robust_spread_fltr(b, sigma=3):
 #Need to convert stats to float before json.dumps
 #The a.mean(dtype='float64') is needed for accuracte calculation
 #names = ['count', 'min', 'max', 'mean', 'std', 'med', 'mad', 'q1', 'q2', 'iqr', 'mode', 'p16', 'p84', 'spread']
+def ma_mode(a):
+    """Return the mode of a masked array as a Python float
+
+    scipy.stats.mstats.mode returns 1-element arrays; NumPy >= 2.4 raises
+    TypeError on float() of an array with ndim > 0, so extract the element
+    """
+    from scipy.stats.mstats import mode
+    m = mode(a, axis=None)[0]
+    if np.ma.is_masked(m) or np.size(m) == 0:
+        return np.nan
+    return float(np.ravel(m)[0])
+
 def get_stats(a, full=False):
     """Compute and print statistics for input array
 
     Needs to be cleaned up, return a stats object
     """
-    from scipy.stats.mstats import mode 
     a = checkma(a)
     thresh = 4E6
     if full or a.count() < thresh:
         q = (iqr(a))
         p16, p84, spread = robust_spread(a)
-        #There has to be a better way to compute the mode for a ma
-        #mstats.mode returns tuple of (array[mode], array[count])
-        a_mode = float(mode(a, axis=None)[0])
+        a_mode = ma_mode(a)
         stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), \
                 fast_median(a), mad(a), q[0], q[1], q[2], a_mode, p16, p84, spread) 
     else:
@@ -1627,7 +1636,7 @@ def get_stats(a, full=False):
         #ac = np.ma.array(ac[idx[::stride]])
         q = (iqr(ac))
         p16, p84, spread = robust_spread(ac)
-        ac_mode = float(mode(ac, axis=None)[0])
+        ac_mode = ma_mode(ac)
         stats = (a.count(), a.min(), a.max(), a.mean(dtype='float64'), a.std(dtype='float64'), \
                 fast_median(ac), mad(ac), q[0], q[1], q[2], ac_mode, p16, p84, spread) 
     return stats
@@ -1652,8 +1661,7 @@ def get_stats_dict(a_in, full=True):
     d['nmad'], d['med'] = mad(a, return_med=True)
     d['median'] = d['med']
     d['p16'], d['p84'], d['spread'] = robust_spread(a)
-    from scipy.stats.mstats import mode 
-    d['mode'] = mode(a, axis=None)[0]
+    d['mode'] = ma_mode(a)
     for i in d:
         d[i] = float(d[i])
     d['count'] = int(d['count'])
@@ -1950,7 +1958,7 @@ def sliding_window(a, ws, ss=None, flatten=True):
     # Collapse strided so that it has one more dimension than the window.  I.e.,
     # the new array is a flat list of slices.
     meat = len(ws) if ws.shape else 0
-    firstdim = (np.product(newshape[:-meat]),) if ws.shape else ()
+    firstdim = (np.prod(newshape[:-meat]),) if ws.shape else ()
     dim = firstdim + (newshape[-meat:])
     # remove any dimensions with size 1
     dim = [i for i in dim if i != 1]
