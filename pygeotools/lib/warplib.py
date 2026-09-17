@@ -80,7 +80,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
     src_res = geolib.get_res(src_ds, t_srs=t_srs, square=True)[0]
 
     if res is None:
-        res = src_res
+        res = get_ds_res(src_ds, t_srs=t_srs)
 
     if extent is None:
         extent = geolib.ds_geom_extent(src_ds, t_srs=t_srs)
@@ -101,7 +101,10 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
     #At this point, the resolution and extent values must be float
     #Extent must be list
-    res = float(res)
+    #Output res can be a single value (square pixels) or [xres, yres]
+    if np.ndim(res) == 0:
+        res = [res, res]
+    xres, yres = [float(i) for i in res]
     extent = [float(i) for i in extent]
 
     #Might want to move this to memwarp_multi, keep memwarp basic w/ gdal.GRA types
@@ -117,14 +120,14 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         dst_fn = ''
     
     #Compute output image dimensions
-    dst_nl = int(round((extent[3] - extent[1])/res))
-    dst_ns = int(round((extent[2] - extent[0])/res))
+    dst_nl = int(round((extent[3] - extent[1])/yres))
+    dst_ns = int(round((extent[2] - extent[0])/xres))
     #dst_nl = int(math.ceil((extent[3] - extent[1])/res))
     #dst_ns = int(math.ceil((extent[2] - extent[0])/res))
     #dst_nl = int(math.floor((extent[3] - extent[1])/res))
     #dst_ns = int(math.floor((extent[2] - extent[0])/res))
     if verbose:
-        print('nl: %i ns: %i res: %0.3f' % (dst_nl, dst_ns, res))
+        print('nl: %i ns: %i res: %0.3f %0.3f' % (dst_nl, dst_ns, xres, yres))
     #Create output dataset
     src_b = src_ds.GetRasterBand(1)
     src_dt = src_b.DataType
@@ -136,7 +139,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
     dst_ds.SetProjection(t_srs.ExportToWkt())
     #Might be an issue to use src_gt rotation terms here with arbitrary extent/res
-    dst_gt = [extent[0], res, src_gt[2], extent[3], src_gt[4], -res]
+    dst_gt = [extent[0], xres, src_gt[2], extent[3], src_gt[4], -yres]
     dst_ds.SetGeoTransform(dst_gt)
    
     #This will smooth the input before downsampling to prevent aliasing, fill gaps
@@ -156,7 +159,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
             from pygeotools.lib import filtlib
             #src_a = src_b.GetVirtualMemArray()
             #Compute resampling ratio to determine filter window size
-            res_ratio = float(res)/src_res
+            res_ratio = xres/src_res
             if verbose:
                 print("Resampling factor: %0.3f" % res_ratio)
             #Might be more efficient to do iterative gauss filter with size 3, rather than larger windows
@@ -309,6 +312,24 @@ def parse_srs(t_srs, src_ds_list=None):
             t_srs = None
     return t_srs
 
+def get_ds_res(ds, t_srs=None):
+    """Get output res from an input dataset
+
+    Returns mean res for square pixels, [xres, yres] for non-square pixels
+    Note: does not account for rotation terms in the geotransform
+    """
+    res = geolib.get_res(ds, t_srs=t_srs)
+    #Same precision as the res and extent checks in warp_multi
+    if t_srs is None:
+        t_srs = geolib.get_ds_srs(ds)
+    precision = 1E-3
+    if t_srs.IsGeographic():
+        precision = 1E-8
+    #Treat as square if xres and yres agree to this precision
+    if geolib.res_compare(res[0], res[1], precision=precision):
+        res = np.mean(res)
+    return res
+
 def parse_res(res, src_ds_list=None, t_srs=None):
     """Parse arbitrary input res 
 
@@ -323,8 +344,8 @@ def parse_res(res, src_ds_list=None, t_srs=None):
 
     Returns
     -------
-    res : float 
-        Output resolution
+    res : float or list of float
+        Output resolution, [xres, yres] if specified dataset has non-square pixels
         None if source resolution should be preserved
     """
     #Default to using first t_srs for res calculations
@@ -339,9 +360,9 @@ def parse_res(res, src_ds_list=None, t_srs=None):
         #Returns min, max, mean, med
         res_stats = geolib.get_res_stats(src_ds_list, t_srs=t_srs)
         if res == 'first':
-            res = geolib.get_res(src_ds_list[0], t_srs=t_srs, square=True)[0]
+            res = get_ds_res(src_ds_list[0], t_srs=t_srs)
         elif res == 'last':
-            res = geolib.get_res(src_ds_list[-1], t_srs=t_srs, square=True)[0]
+            res = get_ds_res(src_ds_list[-1], t_srs=t_srs)
         elif res == 'min':
             res = res_stats[0]
         elif res == 'max':
@@ -356,9 +377,9 @@ def parse_res(res, src_ds_list=None, t_srs=None):
     elif res == 'source':
         res = None
     elif isinstance(res, gdal.Dataset):
-        res = geolib.get_res(res, t_srs=t_srs, square=True)[0]
+        res = get_ds_res(res, t_srs=t_srs)
     elif isinstance(res, str) and os.path.exists(res): 
-        res = geolib.get_res(gdal.Open(res), t_srs=t_srs, square=True)[0]
+        res = get_ds_res(gdal.Open(res), t_srs=t_srs)
     else:
         res = float(res)
     return res
@@ -490,7 +511,8 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
 
         #if srscheck:
         #Extract info from ds to see if warp is necessary
-        ds_res = geolib.get_res(ds, square=True)[0]
+        #Need both x and y res here: mean res of non-square pixels can match output res
+        ds_res = geolib.get_res(ds)
         ds_extent = geolib.ds_extent(ds)
 
         #Note: these checks necessary to handle rounding and precision issues
@@ -500,7 +522,8 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         if ds_t_srs.IsGeographic():
             precision = 1E-8
 
-        rescheck = (res is None) or geolib.res_compare(res, ds_res, precision=precision)
+        rescheck = (res is None) or all(geolib.res_compare(i, j, precision=precision) \
+                for i, j in zip(np.broadcast_to(res, 2), ds_res))
         extentcheck = (extent is None) or geolib.extent_compare(extent, ds_extent, precision=precision)
 
         if debug:
