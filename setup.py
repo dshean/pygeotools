@@ -6,7 +6,7 @@ from distutils.core import setup
 #python setup.py sdist upload
 
 setup(name='pygeotools',
-    version='1.1.2',
+    version='1.1.3',
     description='Libraries and command-line utilities for geospatial data processing/analysis',
     author='David Shean',
     author_email='dshean@gmail.com',

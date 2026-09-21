@@ -11,6 +11,10 @@ import subprocess
 import numpy as np
 from osgeo import gdal, gdal_array
 
+#Enable GDAL exceptions
+#Note: must match geolib, otherwise the global state depends on import order
+gdal.UseExceptions()
+
 #Define drivers
 mem_drv = gdal.GetDriverByName('MEM')
 gtif_drv = gdal.GetDriverByName('GTiff')

@@ -271,7 +271,8 @@ class DEMStack:
                 print("Creating ma_stack")
                 #Note: might not need ma here in the 0 axis - shouldn't be any missing data
                 #self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in ds_list], dtype=self.dtype)
-                self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx]], dtype=self.dtype)
+                #Note: tolist() needed here, as NumPy 2 will not iterate an object array of Datasets
+                self.ma_stack = np.ma.array([iolib.ds_getma(ds) for ds in np.array(ds_list)[~bad_ds_idx].tolist()], dtype=self.dtype)
                 #Might want to convert to proj4
                 self.proj = ds_list[0].GetProjectionRef()
                 self.gt = ds_list[0].GetGeoTransform()
@@ -1678,7 +1679,7 @@ def rmse(a):
     return rmse
 
 #Check that input is a masked array
-def checkma(a, fix=False):
+def checkma(a, fix=True):
     #isinstance(a, np.ma.MaskedArray)
     if np.ma.is_masked(a):
         out=a
@@ -1689,8 +1690,8 @@ def checkma(a, fix=False):
     if fix:
         #Note: this fails for datetime arrays! Treated as objects.
         #Note: datetime ma returns '?' for fill value
-        from datetime import datetime
-        if isinstance(a[0], datetime):
+        #Check dtype, not a[0], which raises IndexError for empty and 0-d input
+        if out.dtype.kind in 'OMm':
             print("Input array appears to be datetime.  Skipping fix")
         else:
             out=np.ma.fix_invalid(out, copy=False)
