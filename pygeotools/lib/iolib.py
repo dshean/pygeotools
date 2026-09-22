@@ -163,6 +163,8 @@ def b_getma(b):
     #bma = np.ma.masked_equal(b.ReadAsArray(), b_ndv)
     #This is more appropriate for float, handles precision issues
     bma = np.ma.masked_values(b.ReadAsArray(), b_ndv)
+    # mask nan or inf values, no need to run "replace_ndv.py", which introduce additional IO for large files
+    bma = np.ma.masked_invalid(bma)
     return bma
 
 def get_sub_dim(src_ds, scale=None, maxdim=1024):
