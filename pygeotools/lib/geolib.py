@@ -8,7 +8,6 @@ Geospatial functions for rasters, vectors.
 
 import sys
 import os
-import requests
 
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -2134,6 +2133,7 @@ def LE90(z_offset):
 #Get approximate elevation MSL from USGS API using 10-m NED
 #https://nationalmap.gov/epqs/
 def get_NED(lon, lat):
+    import requests
     url = 'https://nationalmap.gov/epqs/pqs.php?x=%.8f&y=%.8f&units=Meters&output=json' % (lon, lat)
     r = requests.get(url)
     out = np.nan 
@@ -2157,6 +2157,8 @@ get_NED_np = np.vectorize(get_NED)
 #https://github.com/Jorl17/open-elevation/blob/master/docs/api.md
 def get_OpenElevation(lon, lat):
     import time
+
+    import requests
     if isinstance(lon, (list, tuple, np.ndarray)):
         #https://api.open-elevation.com/api/v1/lookup\?locations\=10,10\|20,20\|41.161758,-8.583933
         locstr = '|'.join(['%0.8f,%0.8f' % i for i in zip(lat, lon)])
@@ -2185,6 +2187,7 @@ def get_OpenElevation(lon, lat):
 #Get geoid offset from NGS
 #https://www.ngs.noaa.gov/web_services/geoid.shtml
 def get_GeoidOffset(lon, lat):
+    import requests
     #Can specify model, 13 = GEOID12B
     url = 'https://geodesy.noaa.gov/api/geoid/ght?lat=%0.8f&lon=%0.8f' % (lat, lon)
     r = requests.get(url)
