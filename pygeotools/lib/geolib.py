@@ -2135,7 +2135,7 @@ def LE90(z_offset):
 def get_NED(lon, lat):
     import requests
     url = 'https://nationalmap.gov/epqs/pqs.php?x=%.8f&y=%.8f&units=Meters&output=json' % (lon, lat)
-    r = requests.get(url)
+    r = requests.get(url, timeout=30)
     out = np.nan 
     ned_ndv = -1000000
     if r.status_code == 200:
